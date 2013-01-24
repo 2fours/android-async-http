@@ -10,6 +10,10 @@ import android.content.Context;
 import android.os.Message;
 
 public abstract class SyncHttpClient extends AsyncHttpClient {
+	public SyncHttpClient(Context context) {
+		super(context);		
+	}
+
 	private int responseCode;
 	/*
 	 * as this is a synchronous request this is just a helping mechanism to pass

@@ -18,6 +18,7 @@
 
 package com.loopj.android.http;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
@@ -32,6 +33,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.zip.GZIPInputStream;
 
 import com.twofours.surespot.SurespotCachingHttpClient;
+import com.twofours.surespot.SurespotCachingHttpClient.SurespotHttpCacheStorage;
 
 import ch.boye.httpclientandroidlib.Header;
 import ch.boye.httpclientandroidlib.HeaderElement;
@@ -116,7 +118,7 @@ public class AsyncHttpClient {
     /**
      * Creates a new AsyncHttpClient.
      */
-    public AsyncHttpClient() {
+    public AsyncHttpClient(Context context) {
         BasicHttpParams httpParams = new BasicHttpParams();
 
         ConnManagerParams.setTimeout(httpParams, socketTimeout);
@@ -136,8 +138,15 @@ public class AsyncHttpClient {
         schemeRegistry.register(new Scheme("https", SSLSocketFactory.getSocketFactory(), 443));
         ThreadSafeClientConnManager cm = new ThreadSafeClientConnManager(httpParams, schemeRegistry);
 
+        CacheConfig memoryCacheConfig = new CacheConfig();  
+        memoryCacheConfig.setMaxCacheEntries(100);
+        memoryCacheConfig.setMaxObjectSizeBytes(200000);
+   
+        
         httpContext = new SyncBasicHttpContext(new BasicHttpContext());
-        cachingHttpClient = new SurespotCachingHttpClient(new DefaultHttpClient(cm, httpParams));
+        DefaultHttpClient defaultClient = new DefaultHttpClient(cm, httpParams);
+        cachingHttpClient = SurespotCachingHttpClient.createSurespotCachingHttpClient(context, defaultClient);
+        
         cachingHttpClient.addRequestInterceptor(new HttpRequestInterceptor() {
             public void process(HttpRequest request, HttpContext context) {
                 if (!request.containsHeader(HEADER_ACCEPT_ENCODING)) {
@@ -168,16 +177,7 @@ public class AsyncHttpClient {
         });
 
         cachingHttpClient.setHttpRequestRetryHandler(new RetryHandler(DEFAULT_MAX_RETRIES));
-        
-        
-        CacheConfig cacheConfig = new CacheConfig();  
-        cacheConfig.setMaxCacheEntries(1000);
-        cacheConfig.setMaxObjectSizeBytes(8192);
-        
-        
-
         threadPool = (ThreadPoolExecutor)Executors.newCachedThreadPool();
-
         requestMap = new WeakHashMap<Context, List<WeakReference<Future<?>>>>();
         clientHeaderMap = new HashMap<String, String>();
     }
