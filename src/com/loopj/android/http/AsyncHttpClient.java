@@ -31,41 +31,45 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.zip.GZIPInputStream;
 
-import org.apache.http.Header;
-import org.apache.http.HeaderElement;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpRequest;
-import org.apache.http.HttpRequestInterceptor;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpResponseInterceptor;
-import org.apache.http.HttpVersion;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.CookieStore;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpDelete;
-import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.client.protocol.ClientContext;
-import org.apache.http.conn.params.ConnManagerParams;
-import org.apache.http.conn.params.ConnPerRouteBean;
-import org.apache.http.conn.scheme.PlainSocketFactory;
-import org.apache.http.conn.scheme.Scheme;
-import org.apache.http.conn.scheme.SchemeRegistry;
-import org.apache.http.conn.ssl.SSLSocketFactory;
-import org.apache.http.entity.HttpEntityWrapper;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
-import org.apache.http.params.BasicHttpParams;
-import org.apache.http.params.HttpParams;
-import org.apache.http.params.HttpConnectionParams;
-import org.apache.http.params.HttpProtocolParams;
-import org.apache.http.protocol.BasicHttpContext;
-import org.apache.http.protocol.HttpContext;
-import org.apache.http.protocol.SyncBasicHttpContext;
+import com.twofours.surespot.SurespotCachingHttpClient;
+
+import ch.boye.httpclientandroidlib.Header;
+import ch.boye.httpclientandroidlib.HeaderElement;
+import ch.boye.httpclientandroidlib.HttpEntity;
+import ch.boye.httpclientandroidlib.HttpRequest;
+import ch.boye.httpclientandroidlib.HttpRequestInterceptor;
+import ch.boye.httpclientandroidlib.HttpResponse;
+import ch.boye.httpclientandroidlib.HttpResponseInterceptor;
+import ch.boye.httpclientandroidlib.HttpVersion;
+import ch.boye.httpclientandroidlib.auth.AuthScope;
+import ch.boye.httpclientandroidlib.auth.UsernamePasswordCredentials;
+import ch.boye.httpclientandroidlib.client.CookieStore;
+import ch.boye.httpclientandroidlib.client.HttpClient;
+import ch.boye.httpclientandroidlib.client.methods.HttpDelete;
+import ch.boye.httpclientandroidlib.client.methods.HttpEntityEnclosingRequestBase;
+import ch.boye.httpclientandroidlib.client.methods.HttpGet;
+import ch.boye.httpclientandroidlib.client.methods.HttpPost;
+import ch.boye.httpclientandroidlib.client.methods.HttpPut;
+import ch.boye.httpclientandroidlib.client.methods.HttpUriRequest;
+import ch.boye.httpclientandroidlib.client.protocol.ClientContext;
+import ch.boye.httpclientandroidlib.conn.params.ConnManagerParams;
+import ch.boye.httpclientandroidlib.conn.params.ConnPerRouteBean;
+import ch.boye.httpclientandroidlib.conn.scheme.PlainSocketFactory;
+import ch.boye.httpclientandroidlib.conn.scheme.Scheme;
+import ch.boye.httpclientandroidlib.conn.scheme.SchemeRegistry;
+import ch.boye.httpclientandroidlib.conn.ssl.SSLSocketFactory;
+import ch.boye.httpclientandroidlib.entity.HttpEntityWrapper;
+import ch.boye.httpclientandroidlib.impl.client.DefaultHttpClient;
+import ch.boye.httpclientandroidlib.impl.client.cache.CacheConfig;
+import ch.boye.httpclientandroidlib.impl.client.cache.CachingHttpClient;
+import ch.boye.httpclientandroidlib.impl.conn.tsccm.ThreadSafeClientConnManager;
+import ch.boye.httpclientandroidlib.params.BasicHttpParams;
+import ch.boye.httpclientandroidlib.params.HttpParams;
+import ch.boye.httpclientandroidlib.params.HttpConnectionParams;
+import ch.boye.httpclientandroidlib.params.HttpProtocolParams;
+import ch.boye.httpclientandroidlib.protocol.BasicHttpContext;
+import ch.boye.httpclientandroidlib.protocol.HttpContext;
+import ch.boye.httpclientandroidlib.protocol.SyncBasicHttpContext;
 
 import android.content.Context;
 
@@ -102,7 +106,7 @@ public class AsyncHttpClient {
     private static int maxConnections = DEFAULT_MAX_CONNECTIONS;
     private static int socketTimeout = DEFAULT_SOCKET_TIMEOUT;
 
-    private final DefaultHttpClient httpClient;
+    private final SurespotCachingHttpClient cachingHttpClient;    
     private final HttpContext httpContext;
     private ThreadPoolExecutor threadPool;
     private final Map<Context, List<WeakReference<Future<?>>>> requestMap;
@@ -133,8 +137,8 @@ public class AsyncHttpClient {
         ThreadSafeClientConnManager cm = new ThreadSafeClientConnManager(httpParams, schemeRegistry);
 
         httpContext = new SyncBasicHttpContext(new BasicHttpContext());
-        httpClient = new DefaultHttpClient(cm, httpParams);
-        httpClient.addRequestInterceptor(new HttpRequestInterceptor() {
+        cachingHttpClient = new SurespotCachingHttpClient(new DefaultHttpClient(cm, httpParams));
+        cachingHttpClient.addRequestInterceptor(new HttpRequestInterceptor() {
             public void process(HttpRequest request, HttpContext context) {
                 if (!request.containsHeader(HEADER_ACCEPT_ENCODING)) {
                     request.addHeader(HEADER_ACCEPT_ENCODING, ENCODING_GZIP);
@@ -145,7 +149,7 @@ public class AsyncHttpClient {
             }
         });
 
-        httpClient.addResponseInterceptor(new HttpResponseInterceptor() {
+        cachingHttpClient.addResponseInterceptor(new HttpResponseInterceptor() {
             public void process(HttpResponse response, HttpContext context) {
                 final HttpEntity entity = response.getEntity();
                 if (entity == null) {
@@ -163,7 +167,14 @@ public class AsyncHttpClient {
             }
         });
 
-        httpClient.setHttpRequestRetryHandler(new RetryHandler(DEFAULT_MAX_RETRIES));
+        cachingHttpClient.setHttpRequestRetryHandler(new RetryHandler(DEFAULT_MAX_RETRIES));
+        
+        
+        CacheConfig cacheConfig = new CacheConfig();  
+        cacheConfig.setMaxCacheEntries(1000);
+        cacheConfig.setMaxObjectSizeBytes(8192);
+        
+        
 
         threadPool = (ThreadPoolExecutor)Executors.newCachedThreadPool();
 
@@ -177,7 +188,7 @@ public class AsyncHttpClient {
      * client's ConnectionManager, HttpParams and SchemeRegistry.
      */
     public HttpClient getHttpClient() {
-        return this.httpClient;
+        return this.cachingHttpClient;
     }
 
     /**
@@ -212,7 +223,7 @@ public class AsyncHttpClient {
      * @param userAgent the string to use in the User-Agent header.
      */
     public void setUserAgent(String userAgent) {
-        HttpProtocolParams.setUserAgent(this.httpClient.getParams(), userAgent);
+        HttpProtocolParams.setUserAgent(this.cachingHttpClient.getParams(), userAgent);
     }
 
     /**
@@ -220,7 +231,7 @@ public class AsyncHttpClient {
      * @param timeout the connect/socket timeout in milliseconds
      */
     public void setTimeout(int timeout){
-        final HttpParams httpParams = this.httpClient.getParams();
+        final HttpParams httpParams = this.cachingHttpClient.getParams();
         ConnManagerParams.setTimeout(httpParams, timeout);
         HttpConnectionParams.setSoTimeout(httpParams, timeout);
         HttpConnectionParams.setConnectionTimeout(httpParams, timeout);
@@ -232,7 +243,7 @@ public class AsyncHttpClient {
      * @param sslSocketFactory the socket factory to use for https requests.
      */
     public void setSSLSocketFactory(SSLSocketFactory sslSocketFactory) {
-        this.httpClient.getConnectionManager().getSchemeRegistry().register(new Scheme("https", sslSocketFactory, 443));
+        this.cachingHttpClient.getConnectionManager().getSchemeRegistry().register(new Scheme("https", sslSocketFactory, 443));
     }
     
     /**
@@ -265,7 +276,7 @@ public class AsyncHttpClient {
      */
     public void setBasicAuth( String user, String pass, AuthScope scope){
         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials(user,pass);
-        this.httpClient.getCredentialsProvider().setCredentials(scope, credentials);
+        this.cachingHttpClient.getCredentialsProvider().setCredentials(scope, credentials);
     }
 
     /**
@@ -335,7 +346,7 @@ public class AsyncHttpClient {
      * @param responseHandler the response handler instance that should handle the response.
      */
     public void get(Context context, String url, RequestParams params, AsyncHttpResponseHandler responseHandler) {
-        sendRequest(httpClient, httpContext, new HttpGet(getUrlWithQueryString(url, params)), null, responseHandler, context);
+        sendRequest(cachingHttpClient, httpContext, new HttpGet(getUrlWithQueryString(url, params)), null, responseHandler, context);
     }
     
     /**
@@ -351,7 +362,7 @@ public class AsyncHttpClient {
     public void get(Context context, String url, Header[] headers, RequestParams params, AsyncHttpResponseHandler responseHandler) {
         HttpUriRequest request = new HttpGet(getUrlWithQueryString(url, params));
         if(headers != null) request.setHeaders(headers);
-        sendRequest(httpClient, httpContext, request, null, responseHandler,
+        sendRequest(cachingHttpClient, httpContext, request, null, responseHandler,
                 context);
     }
 
@@ -394,12 +405,12 @@ public class AsyncHttpClient {
      * Perform a HTTP POST request and track the Android Context which initiated the request.
      * @param context the Android Context which initiated the request.
      * @param url the URL to send the request to.
-     * @param entity a raw {@link HttpEntity} to send with the request, for example, use this to send string/json/xml payloads to a server by passing a {@link org.apache.http.entity.StringEntity}.
+     * @param entity a raw {@link HttpEntity} to send with the request, for example, use this to send string/json/xml payloads to a server by passing a {@link ch.boye.httpclientandroidlib.entity.StringEntity}.
      * @param contentType the content type of the payload you are sending, for example application/json if sending a json payload.
      * @param responseHandler the response handler instance that should handle the response.
      */
     public void post(Context context, String url, HttpEntity entity, String contentType, AsyncHttpResponseHandler responseHandler) {
-        sendRequest(httpClient, httpContext, addEntityToRequestBase(new HttpPost(url), entity), contentType, responseHandler, context);
+        sendRequest(cachingHttpClient, httpContext, addEntityToRequestBase(new HttpPost(url), entity), contentType, responseHandler, context);
     }
 
     /**
@@ -420,7 +431,7 @@ public class AsyncHttpClient {
         HttpEntityEnclosingRequestBase request = new HttpPost(url);
         if(params != null) request.setEntity(paramsToEntity(params));
         if(headers != null) request.setHeaders(headers);
-        sendRequest(httpClient, httpContext, request, contentType,
+        sendRequest(cachingHttpClient, httpContext, request, contentType,
                 responseHandler, context);
     }
 
@@ -433,7 +444,7 @@ public class AsyncHttpClient {
      * @param headers set headers only for this request
      * @param entity a raw {@link HttpEntity} to send with the request, for
      *        example, use this to send string/json/xml payloads to a server by
-     *        passing a {@link org.apache.http.entity.StringEntity}.
+     *        passing a {@link ch.boye.httpclientandroidlib.entity.StringEntity}.
      * @param contentType the content type of the payload you are sending, for
      *        example application/json if sending a json payload.
      * @param responseHandler the response handler instance that should handle
@@ -443,7 +454,7 @@ public class AsyncHttpClient {
             AsyncHttpResponseHandler responseHandler) {
         HttpEntityEnclosingRequestBase request = addEntityToRequestBase(new HttpPost(url), entity);
         if(headers != null) request.setHeaders(headers);
-        sendRequest(httpClient, httpContext, request, contentType, responseHandler, context);
+        sendRequest(cachingHttpClient, httpContext, request, contentType, responseHandler, context);
     }
 
     //
@@ -485,12 +496,12 @@ public class AsyncHttpClient {
      * And set one-time headers for the request
      * @param context the Android Context which initiated the request.
      * @param url the URL to send the request to.
-     * @param entity a raw {@link HttpEntity} to send with the request, for example, use this to send string/json/xml payloads to a server by passing a {@link org.apache.http.entity.StringEntity}.
+     * @param entity a raw {@link HttpEntity} to send with the request, for example, use this to send string/json/xml payloads to a server by passing a {@link ch.boye.httpclientandroidlib.entity.StringEntity}.
      * @param contentType the content type of the payload you are sending, for example application/json if sending a json payload.
      * @param responseHandler the response handler instance that should handle the response.
      */
     public void put(Context context, String url, HttpEntity entity, String contentType, AsyncHttpResponseHandler responseHandler) {
-        sendRequest(httpClient, httpContext, addEntityToRequestBase(new HttpPut(url), entity), contentType, responseHandler, context);
+        sendRequest(cachingHttpClient, httpContext, addEntityToRequestBase(new HttpPut(url), entity), contentType, responseHandler, context);
     }
     
     /**
@@ -499,14 +510,14 @@ public class AsyncHttpClient {
      * @param context the Android Context which initiated the request.
      * @param url the URL to send the request to.
      * @param headers set one-time headers for this request
-     * @param entity a raw {@link HttpEntity} to send with the request, for example, use this to send string/json/xml payloads to a server by passing a {@link org.apache.http.entity.StringEntity}.
+     * @param entity a raw {@link HttpEntity} to send with the request, for example, use this to send string/json/xml payloads to a server by passing a {@link ch.boye.httpclientandroidlib.entity.StringEntity}.
      * @param contentType the content type of the payload you are sending, for example application/json if sending a json payload.
      * @param responseHandler the response handler instance that should handle the response.
      */
     public void put(Context context, String url,Header[] headers, HttpEntity entity, String contentType, AsyncHttpResponseHandler responseHandler) {
         HttpEntityEnclosingRequestBase request = addEntityToRequestBase(new HttpPut(url), entity);
         if(headers != null) request.setHeaders(headers);
-        sendRequest(httpClient, httpContext, request, contentType, responseHandler, context);
+        sendRequest(cachingHttpClient, httpContext, request, contentType, responseHandler, context);
     }
 
     //
@@ -530,7 +541,7 @@ public class AsyncHttpClient {
      */
     public void delete(Context context, String url, AsyncHttpResponseHandler responseHandler) {
         final HttpDelete delete = new HttpDelete(url);
-        sendRequest(httpClient, httpContext, delete, null, responseHandler, context);
+        sendRequest(cachingHttpClient, httpContext, delete, null, responseHandler, context);
     }
     
     /**
@@ -543,12 +554,12 @@ public class AsyncHttpClient {
     public void delete(Context context, String url, Header[] headers, AsyncHttpResponseHandler responseHandler) {
         final HttpDelete delete = new HttpDelete(url);
         if(headers != null) delete.setHeaders(headers);
-        sendRequest(httpClient, httpContext, delete, null, responseHandler, context);
+        sendRequest(cachingHttpClient, httpContext, delete, null, responseHandler, context);
     }
 
 
     // Private stuff
-    protected void sendRequest(DefaultHttpClient client, HttpContext httpContext, HttpUriRequest uriRequest, String contentType, AsyncHttpResponseHandler responseHandler, Context context) {
+    protected void sendRequest(SurespotCachingHttpClient client, HttpContext httpContext, HttpUriRequest uriRequest, String contentType, AsyncHttpResponseHandler responseHandler, Context context) {
         if(contentType != null) {
             uriRequest.addHeader("Content-Type", contentType);
         }

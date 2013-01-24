@@ -27,8 +27,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.http.client.CookieStore;
-import org.apache.http.cookie.Cookie;
+import ch.boye.httpclientandroidlib.client.CookieStore;
+import ch.boye.httpclientandroidlib.cookie.Cookie;
 
 import android.content.Context;
 import android.content.SharedPreferences;

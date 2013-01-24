@@ -24,21 +24,25 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpRequestRetryHandler;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.impl.client.AbstractHttpClient;
-import org.apache.http.protocol.HttpContext;
+import com.twofours.surespot.SurespotCachingHttpClient;
+
+import ch.boye.httpclientandroidlib.HttpResponse;
+import ch.boye.httpclientandroidlib.client.HttpRequestRetryHandler;
+import ch.boye.httpclientandroidlib.client.cache.CacheResponseStatus;
+import ch.boye.httpclientandroidlib.client.methods.HttpUriRequest;
+import ch.boye.httpclientandroidlib.impl.client.AbstractHttpClient;
+import ch.boye.httpclientandroidlib.impl.client.cache.CachingHttpClient;
+import ch.boye.httpclientandroidlib.protocol.HttpContext;
 
 class AsyncHttpRequest implements Runnable {
-    private final AbstractHttpClient client;
+    private final SurespotCachingHttpClient client;
     private final HttpContext context;
     private final HttpUriRequest request;
     private final AsyncHttpResponseHandler responseHandler;
     private boolean isBinaryRequest;
     private int executionCount;
 
-    public AsyncHttpRequest(AbstractHttpClient client, HttpContext context, HttpUriRequest request, AsyncHttpResponseHandler responseHandler) {
+    public AsyncHttpRequest(SurespotCachingHttpClient client, HttpContext context, HttpUriRequest request, AsyncHttpResponseHandler responseHandler) {
         this.client = client;
         this.context = context;
         this.request = request;
@@ -76,6 +80,24 @@ class AsyncHttpRequest implements Runnable {
             HttpResponse response = client.execute(request, context);
             if(!Thread.currentThread().isInterrupted()) {
                 if(responseHandler != null) {
+                	CacheResponseStatus responseStatus = (CacheResponseStatus) context.getAttribute(
+                	        CachingHttpClient.CACHE_RESPONSE_STATUS);
+                	switch (responseStatus) {
+                	case CACHE_HIT:
+                	    System.out.println("A response was generated from the cache with no requests " +
+                	            "sent upstream");
+                	    break;
+                	case CACHE_MODULE_RESPONSE:
+                	    System.out.println("The response was generated directly by the caching module");
+                	    break;
+                	case CACHE_MISS:
+                	    System.out.println("The response came from an upstream server");
+                	    break;
+                	case VALIDATED:
+                	    System.out.println("The response was generated from the cache after validating " +
+                	            "the entry with the origin server");
+                	    break;
+                	}
                     responseHandler.sendResponseMessage(response);
                 }
             } else{

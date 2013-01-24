@@ -1,8 +1,10 @@
 package com.loopj.android.http;
 
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.protocol.HttpContext;
+import com.twofours.surespot.SurespotCachingHttpClient;
+
+import ch.boye.httpclientandroidlib.client.methods.HttpUriRequest;
+import ch.boye.httpclientandroidlib.impl.client.DefaultHttpClient;
+import ch.boye.httpclientandroidlib.protocol.HttpContext;
 
 import android.content.Context;
 import android.os.Message;
@@ -17,7 +19,7 @@ public abstract class SyncHttpClient extends AsyncHttpClient {
 	private String result;
 	AsyncHttpResponseHandler responseHandler = new AsyncHttpResponseHandler() {
 
-		void sendResponseMessage(org.apache.http.HttpResponse response) {
+		void sendResponseMessage(ch.boye.httpclientandroidlib.HttpResponse response) {
 			responseCode = response.getStatusLine().getStatusCode();
 			super.sendResponseMessage(response);
 		};
@@ -51,7 +53,7 @@ public abstract class SyncHttpClient extends AsyncHttpClient {
 	}
 
 	// Private stuff
-	protected void sendRequest(DefaultHttpClient client,
+	protected void sendRequest(SurespotCachingHttpClient client,
 			HttpContext httpContext, HttpUriRequest uriRequest,
 			String contentType, AsyncHttpResponseHandler responseHandler,
 			Context context) {

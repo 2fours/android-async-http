@@ -8,4 +8,5 @@ bin/
 gen/
 _layouts
 .DS_Store
-gh-pages
+gh-pages.settings/
+.settings/
