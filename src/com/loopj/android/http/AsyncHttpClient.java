@@ -145,7 +145,7 @@ public class AsyncHttpClient {
         
         httpContext = new SyncBasicHttpContext(new BasicHttpContext());
         DefaultHttpClient defaultClient = new DefaultHttpClient(cm, httpParams);
-        cachingHttpClient = SurespotCachingHttpClient.createSurespotCachingHttpClient(context, defaultClient);
+        cachingHttpClient = SurespotCachingHttpClient.createSurespotDiskCachingHttpClient(context, defaultClient);
         
         cachingHttpClient.addRequestInterceptor(new HttpRequestInterceptor() {
             public void process(HttpRequest request, HttpContext context) {

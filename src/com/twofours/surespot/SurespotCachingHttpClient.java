@@ -35,17 +35,33 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 
 	public SurespotCachingHttpClient(Context context, CachingHttpClient diskCacheClient, AbstractHttpClient defaultHttpClient) {
 		super(diskCacheClient, getMemoryCacheConfig());
+//		log.enableDebug(true);
+//		log.enableError(true);
+//		log.enableInfo(true);
+//		log.enableTrace(true);
+//		log.enableWarn(true);
+
+
+		mAbstractHttpClient = defaultHttpClient;
+
+	}
+	
+
+	/**
+	 * Use disk cache only
+	 * @param context
+	 * @param defaultHttpClient
+	 */
+	public SurespotCachingHttpClient(Context context,  AbstractHttpClient defaultHttpClient) {
+		super(defaultHttpClient, new SurespotHttpCacheStorage(new File(context
+				.getCacheDir().getPath() + File.pathSeparator + DISK_CACHE_SUBDIR)), getDiskCacheConfig());
 		log.enableDebug(true);
 		log.enableError(true);
 		log.enableInfo(true);
 		log.enableTrace(true);
 		log.enableWarn(true);
 		
-		diskCacheClient.log.enableDebug(true);
-		diskCacheClient.log.enableError(true);
-		diskCacheClient.log.enableInfo(true);
-		diskCacheClient.log.enableTrace(true);
-		diskCacheClient.log.enableWarn(true);
+		
 
 
 		mAbstractHttpClient = defaultHttpClient;
@@ -63,8 +79,22 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 
 			CachingHttpClient diskCacheClient = new CachingHttpClient(abstractClient, new SurespotHttpCacheStorage(new File(context
 					.getCacheDir().getPath() + File.pathSeparator + DISK_CACHE_SUBDIR)), getDiskCacheConfig());
+			
+//			diskCacheClient.log.enableDebug(true);
+//			diskCacheClient.log.enableError(true);
+//			diskCacheClient.log.enableInfo(true);
+//			diskCacheClient.log.enableTrace(true);
+//			diskCacheClient.log.enableWarn(true);
 
 			SurespotCachingHttpClient client = new SurespotCachingHttpClient(context, diskCacheClient, abstractClient);
+			mInstance = client;
+		}
+		return mInstance;
+	}
+	
+	public static SurespotCachingHttpClient createSurespotDiskCachingHttpClient(Context context, AbstractHttpClient abstractClient) {
+		if (mInstance == null) {
+			SurespotCachingHttpClient client = new SurespotCachingHttpClient(context, abstractClient);
 			mInstance = client;
 		}
 		return mInstance;
@@ -83,7 +113,7 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 				Log.v(TAG, "storage cache dir: " + cacheDir);
 
 				mCache = DiskLruCache.open(cacheDir, 100, 1, Integer.MAX_VALUE);
-			} catch (IOException e) {
+			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
@@ -95,7 +125,8 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 			try {
 				Snapshot snapshot = null;
 
-				snapshot = mCache.get(generateKey(arg0));
+				String key = generateKey(arg0);
+				snapshot = mCache.get(key);
 
 				if (snapshot == null) {
 					return null;
@@ -104,9 +135,9 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 				ObjectInputStream ois = new ObjectInputStream(is);
 
 				entry = (HttpCacheEntry) ois.readObject();
-				is.close();
-			} catch (ClassNotFoundException e) {
-				throw new IOException("HttpCacheEntry class not found", e);
+				ois.close();
+			} catch (Exception e) {
+				throw new IOException("Error retrieving cache entry: " + arg0, e);
 			}
 
 			return entry;
