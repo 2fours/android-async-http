@@ -117,8 +117,9 @@ public class AsyncHttpClient {
 
     /**
      * Creates a new AsyncHttpClient.
+     * @throws IOException 
      */
-    public AsyncHttpClient(Context context) {
+    public AsyncHttpClient(Context context) throws IOException {
         BasicHttpParams httpParams = new BasicHttpParams();
 
         ConnManagerParams.setTimeout(httpParams, socketTimeout);
@@ -625,5 +626,9 @@ public class AsyncHttpClient {
         public long getContentLength() {
             return -1;
         }
+    }
+    
+    public void clearCache() {
+    	cachingHttpClient.clearCache();
     }
 }

@@ -8,7 +8,11 @@ import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.URLEncoder;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.drawable.shapes.ArcShape;
+import android.os.Build;
+import android.os.Environment;
 import android.util.Log;
 import ch.boye.httpclientandroidlib.HttpRequestInterceptor;
 import ch.boye.httpclientandroidlib.HttpResponseInterceptor;
@@ -29,70 +33,81 @@ import com.loopj.android.http.RetryHandler;
 
 public class SurespotCachingHttpClient extends CachingHttpClient {
 	private AbstractHttpClient mAbstractHttpClient;
+	private static SurespotHttpCacheStorage mCacheStorage;
 
 	private static final String DISK_CACHE_SUBDIR = "http";
 	private static SurespotCachingHttpClient mInstance = null;
 
-	public SurespotCachingHttpClient(Context context, CachingHttpClient diskCacheClient, AbstractHttpClient defaultHttpClient) {
+	public SurespotCachingHttpClient(Context context, CachingHttpClient diskCacheClient, AbstractHttpClient defaultHttpClient,
+			SurespotHttpCacheStorage surespotHttpCacheStorage) {
 		super(diskCacheClient, getMemoryCacheConfig());
-//		log.enableDebug(true);
-//		log.enableError(true);
-//		log.enableInfo(true);
-//		log.enableTrace(true);
-//		log.enableWarn(true);
-
+		// log.enableDebug(true);
+		// log.enableError(true);
+		// log.enableInfo(true);
+		// log.enableTrace(true);
+		// log.enableWarn(true);
 
 		mAbstractHttpClient = defaultHttpClient;
+		mCacheStorage = surespotHttpCacheStorage;
 
 	}
-	
 
 	/**
 	 * Use disk cache only
+	 * 
 	 * @param context
 	 * @param defaultHttpClient
+	 * @throws IOException
 	 */
-	public SurespotCachingHttpClient(Context context,  AbstractHttpClient defaultHttpClient) {
-		super(defaultHttpClient, new SurespotHttpCacheStorage(new File(context
-				.getCacheDir().getPath() + File.pathSeparator + DISK_CACHE_SUBDIR)), getDiskCacheConfig());
+	public SurespotCachingHttpClient(Context context, AbstractHttpClient defaultHttpClient) throws IOException {
+		super(defaultHttpClient, getHttpCacheStorage(context), getDiskCacheConfig());
 		log.enableDebug(true);
 		log.enableError(true);
 		log.enableInfo(true);
 		log.enableTrace(true);
 		log.enableWarn(true);
-		
-		
-
 
 		mAbstractHttpClient = defaultHttpClient;
 
 	}
 
+	private static HttpCacheStorage getHttpCacheStorage(Context context) throws IOException {
+		if (mCacheStorage == null) {
+			mCacheStorage = new SurespotHttpCacheStorage(context);
+		}
+		return mCacheStorage;
+	}
+
 	/**
 	 * singleton - TODO dependency injection
+	 * 
 	 * @param context
 	 * @param abstractClient
 	 * @return
+	 * @throws IOException
 	 */
-	public static SurespotCachingHttpClient createSurespotCachingHttpClient(Context context, AbstractHttpClient abstractClient) {
+	public static SurespotCachingHttpClient createSurespotCachingHttpClient(Context context, AbstractHttpClient abstractClient)
+			throws IOException {
 		if (mInstance == null) {
 
-			CachingHttpClient diskCacheClient = new CachingHttpClient(abstractClient, new SurespotHttpCacheStorage(new File(context
-					.getCacheDir().getPath() + File.pathSeparator + DISK_CACHE_SUBDIR)), getDiskCacheConfig());
-			
-//			diskCacheClient.log.enableDebug(true);
-//			diskCacheClient.log.enableError(true);
-//			diskCacheClient.log.enableInfo(true);
-//			diskCacheClient.log.enableTrace(true);
-//			diskCacheClient.log.enableWarn(true);
+			SurespotHttpCacheStorage storage = new SurespotHttpCacheStorage(context);
 
-			SurespotCachingHttpClient client = new SurespotCachingHttpClient(context, diskCacheClient, abstractClient);
+			CachingHttpClient diskCacheClient = new CachingHttpClient(abstractClient, storage, getDiskCacheConfig());
+
+			// diskCacheClient.log.enableDebug(true);
+			// diskCacheClient.log.enableError(true);
+			// diskCacheClient.log.enableInfo(true);
+			// diskCacheClient.log.enableTrace(true);
+			// diskCacheClient.log.enableWarn(true);
+
+			SurespotCachingHttpClient client = new SurespotCachingHttpClient(context, diskCacheClient, abstractClient, storage);
 			mInstance = client;
 		}
 		return mInstance;
 	}
-	
-	public static SurespotCachingHttpClient createSurespotDiskCachingHttpClient(Context context, AbstractHttpClient abstractClient) {
+
+	public static SurespotCachingHttpClient createSurespotDiskCachingHttpClient(Context context, AbstractHttpClient abstractClient)
+			throws IOException {
 		if (mInstance == null) {
 			SurespotCachingHttpClient client = new SurespotCachingHttpClient(context, abstractClient);
 			mInstance = client;
@@ -101,22 +116,22 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 	}
 
 	private static String generateKey(String key) {
-		return key.replaceAll("[^a-zA-Z0-9_-]", "");
+		return key.replace(':', '_').replaceAll("[^a-zA-Z0-9_-]", "");
 	}
 
 	public static class SurespotHttpCacheStorage implements HttpCacheStorage {
 		private static final String TAG = "SurespotHttpCacheStorage";
 		private com.jakewharton.DiskLruCache mCache;
+		private File mCacheDir;
 
-		public SurespotHttpCacheStorage(File cacheDir) {
-			try {
-				Log.v(TAG, "storage cache dir: " + cacheDir);
+		public SurespotHttpCacheStorage(Context context) throws IOException {
 
-				mCache = DiskLruCache.open(cacheDir, 100, 1, Integer.MAX_VALUE);
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			mCacheDir = getDiskCacheDir(context, "http");
+
+			Log.v(TAG, "storage cache dir: " + mCacheDir);
+
+			mCache = DiskLruCache.open(mCacheDir, 100, 1, Integer.MAX_VALUE);
+
 		}
 
 		@Override
@@ -135,8 +150,10 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 				ObjectInputStream ois = new ObjectInputStream(is);
 
 				entry = (HttpCacheEntry) ois.readObject();
+				snapshot.close();
 				ois.close();
-			} catch (Exception e) {
+			}
+			catch (Exception e) {
 				throw new IOException("Error retrieving cache entry: " + arg0, e);
 			}
 
@@ -154,7 +171,8 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 				os.close();
 
 				edit.commit();
-			} catch (Exception e) {
+			}
+			catch (Exception e) {
 				e.printStackTrace();
 			}
 
@@ -170,12 +188,121 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 			try {
 				String key = generateKey(arg0);
 				putEntry(generateKey(key), arg1.update(getEntry(key)));
-			} catch (Exception e) {
+			}
+			catch (Exception e) {
 				e.printStackTrace();
 			}
 
 		}
 
+		/**
+		 * Removes all disk cache entries from the application cache directory in the uniqueName sub-directory.
+		 * 
+		 * @param context
+		 *            The context to use
+		 * @param uniqueName
+		 *            A unique cache directory name to append to the app cache directory
+		 */
+		public void clearCache() {
+
+			clearCache(mCacheDir);
+		}
+
+		/**
+		 * Removes all disk cache entries from the given directory. This should not be called directly, call
+		 * {@link DiskLruCache#clearCache(Context, String)} or {@link DiskLruCache#clearCache()} instead.
+		 * 
+		 * @param cacheDir
+		 *            The directory to remove the cache files from
+		 */
+		private void clearCache(File cacheDir) {
+			final File[] files = cacheDir.listFiles();
+			for (int i = 0; i < files.length; i++) {
+				files[i].delete();
+			}
+		}
+
+		/**
+		 * Get a usable cache directory (external if available, internal otherwise).
+		 * 
+		 * @param context
+		 *            The context to use
+		 * @param uniqueName
+		 *            A unique directory name to append to the cache dir
+		 * @return The cache dir
+		 */
+		public File getDiskCacheDir(Context context, String uniqueName) {
+
+			// Check if media is mounted or storage is built-in, if so, try and use external cache dir
+			// otherwise use internal cache dir
+			String cachePath = null;
+
+			
+			//see if we can write to the "external" storage
+			if (Environment.getExternalStorageState() == Environment.MEDIA_MOUNTED || !isExternalStorageRemovable()) {
+				cachePath = getExternalCacheDir(context).getPath();
+			}
+
+			if (cachePath != null) {
+				File cacheDir = new File(cachePath + File.separator + uniqueName);
+				if (cacheDir.canWrite()) {
+					return cacheDir;
+				}
+
+			}
+
+			return  new File(context.getCacheDir().getPath() + File.separator + uniqueName);
+
+		}
+
+		/**
+		 * Check if external storage is built-in or removable.
+		 * 
+		 * @return True if external storage is removable (like an SD card), false otherwise.
+		 */
+		@SuppressLint("NewApi")
+		public boolean isExternalStorageRemovable() {
+			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
+				return Environment.isExternalStorageRemovable();
+			}
+			return true;
+		}
+
+		/**
+		 * Get the external app cache directory.
+		 * 
+		 * @param context
+		 *            The context to use
+		 * @return The external cache dir
+		 */
+		@SuppressLint("NewApi")
+		public File getExternalCacheDir(Context context) {
+			File cacheDir = null;
+			if (hasExternalCacheDir()) {
+				cacheDir = context.getExternalCacheDir();
+			}
+
+			if (cacheDir == null) {
+				// Before Froyo we need to construct the external cache dir ourselves
+				final String sCacheDir = "/Android/data/" + context.getPackageName() + "/cache/";
+				cacheDir = new File(Environment.getExternalStorageDirectory().getPath() + sCacheDir);
+			}
+			return cacheDir;
+		}
+
+		/**
+		 * Check if OS version has built-in external cache dir method.
+		 * 
+		 * @return
+		 */
+		public boolean hasExternalCacheDir() {
+			return Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO;
+		}
+
+	}
+
+	public static void clearCache() {
+		mCacheStorage.clearCache();
 	}
 
 	private static CacheConfig getMemoryCacheConfig() {
@@ -214,6 +341,11 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 	public void setHttpRequestRetryHandler(RetryHandler retryHandler) {
 		mAbstractHttpClient.setHttpRequestRetryHandler(retryHandler);
 
+	}
+
+	@Override
+	public boolean isSharedCache() {
+		return true;
 	}
 
 }

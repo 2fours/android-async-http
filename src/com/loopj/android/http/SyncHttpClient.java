@@ -1,5 +1,7 @@
 package com.loopj.android.http;
 
+import java.io.IOException;
+
 import com.twofours.surespot.SurespotCachingHttpClient;
 
 import ch.boye.httpclientandroidlib.client.methods.HttpUriRequest;
@@ -10,7 +12,7 @@ import android.content.Context;
 import android.os.Message;
 
 public abstract class SyncHttpClient extends AsyncHttpClient {
-	public SyncHttpClient(Context context) {
+	public SyncHttpClient(Context context) throws IOException {
 		super(context);		
 	}
 
@@ -123,5 +125,7 @@ public abstract class SyncHttpClient extends AsyncHttpClient {
 		this.delete(url, null, responseHandler);
 		return result;
 	}
+	
+
 
 }
