@@ -28,14 +28,17 @@ import java.io.InterruptedIOException;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.HashSet;
+import java.util.Iterator;
 
 import javax.net.ssl.SSLHandshakeException;
+
 
 import ch.boye.httpclientandroidlib.NoHttpResponseException;
 import ch.boye.httpclientandroidlib.client.methods.HttpUriRequest;
 import ch.boye.httpclientandroidlib.client.HttpRequestRetryHandler;
 import ch.boye.httpclientandroidlib.protocol.ExecutionContext;
 import ch.boye.httpclientandroidlib.protocol.HttpContext;
+
 
 import android.os.SystemClock;
 
@@ -73,10 +76,10 @@ public class RetryHandler implements HttpRequestRetryHandler {
         if(executionCount > maxRetries) {
             // Do not retry if over max retry count
             retry = false;
-        } else if (exceptionBlacklist.contains(exception.getClass())) {
+        } else if (isInList(exceptionBlacklist, exception)) {
             // immediately cancel retry if the error is blacklisted
             retry = false;
-        } else if (exceptionWhitelist.contains(exception.getClass())) {
+        } else if (isInList(exceptionWhitelist, exception)) {
             // immediately retry if error is whitelisted
             retry = true;
         } else if (!sent) {
@@ -98,5 +101,15 @@ public class RetryHandler implements HttpRequestRetryHandler {
         }
 
         return retry;
+    }
+    
+    protected boolean isInList(HashSet<Class<?>> list, Throwable error) {
+    	Iterator<Class<?>> itr = list.iterator();
+    	while (itr.hasNext()) {
+    		if (itr.next().isInstance(error)) {
+    			return true;
+    		}
+    	}
+    	return false;
     }
 }
