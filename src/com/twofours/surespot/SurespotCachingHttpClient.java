@@ -6,6 +6,8 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -121,8 +123,29 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 	}
 
 	private static String generateKey(String key) {
-		return key.replace(':', '_').replaceAll("[^a-zA-Z0-9_-]", "");
+		return md5(key);
 	}
+	
+	public static String md5(String s) {
+		try {
+			// Create MD5 Hash
+			MessageDigest digest = java.security.MessageDigest.getInstance("MD5");
+			digest.update(s.getBytes());
+			byte messageDigest[] = digest.digest();
+
+			// Create Hex String
+			StringBuffer hexString = new StringBuffer();
+			for (int i = 0; i < messageDigest.length; i++)
+				hexString.append(Integer.toHexString(0xFF & messageDigest[i]));
+			return hexString.toString();
+
+		}
+		catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		}
+		return "";
+	}
+
 
 	public static class SurespotHttpCacheStorage implements HttpCacheStorage {
 		private static final String DISK_CACHE_SUBDIR = "http";
@@ -212,6 +235,16 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 		public void clearCache() {
 
 			clearCache(mCacheDir);
+		}
+		
+		public void close() {
+			try {
+				mCache.flush();
+			//	mCache.close();
+			}
+			catch (IOException e) {
+				Log.w(TAG, "close",e);
+			}
 		}
 
 		/**
@@ -309,7 +342,7 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 	public void clearCache() {
 		mCacheStorage.clearCache();
 	}
-
+	
 	private static CacheConfig getMemoryCacheConfig() {
 
 		CacheConfig cacheConfig = new CacheConfig();
