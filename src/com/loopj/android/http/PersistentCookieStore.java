@@ -27,12 +27,11 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
-import ch.boye.httpclientandroidlib.client.CookieStore;
-import ch.boye.httpclientandroidlib.cookie.Cookie;
-
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.text.TextUtils;
+import ch.boye.httpclientandroidlib.client.CookieStore;
+import ch.boye.httpclientandroidlib.cookie.Cookie;
 
 /**
  * A persistent cookie store which implements the Apache HttpClient

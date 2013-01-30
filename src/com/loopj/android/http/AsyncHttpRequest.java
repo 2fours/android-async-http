@@ -24,18 +24,21 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 
-import com.twofours.surespot.SurespotCachingHttpClient;
+import org.acra.ACRA;
 
+import android.util.Log;
 import ch.boye.httpclientandroidlib.HttpResponse;
 import ch.boye.httpclientandroidlib.client.HttpRequestRetryHandler;
 import ch.boye.httpclientandroidlib.client.cache.CacheResponseStatus;
 import ch.boye.httpclientandroidlib.client.methods.HttpUriRequest;
-import ch.boye.httpclientandroidlib.impl.client.AbstractHttpClient;
 import ch.boye.httpclientandroidlib.impl.client.cache.CachingHttpClient;
 import ch.boye.httpclientandroidlib.protocol.HttpContext;
 
+import com.twofours.surespot.SurespotCachingHttpClient;
+
 class AsyncHttpRequest implements Runnable {
-    private final SurespotCachingHttpClient client;
+    private static final String TAG = "AsyncHttpRequest";
+	private final SurespotCachingHttpClient client;
     private final HttpContext context;
     private final HttpUriRequest request;
     private final AsyncHttpResponseHandler responseHandler;
@@ -102,6 +105,7 @@ class AsyncHttpRequest implements Runnable {
                 }
             } else{
                 //TODO: should raise InterruptedException? this block is reached whenever the request is cancelled before its response is received
+            	Log.v(TAG,"makeRequest interrupted");
             }
         }
     }
@@ -146,7 +150,8 @@ class AsyncHttpRequest implements Runnable {
 
         // no retries left, crap out with exception
         ConnectException ex = new ConnectException();
-        ex.initCause(cause);
+        ex.initCause(cause);       
+        ACRA.getErrorReporter().handleException(cause);
         throw ex;
     }
 }

@@ -18,6 +18,8 @@
 
 package com.loopj.android.http;
 
+import java.io.IOException;
+
 import android.os.Message;
 import ch.boye.httpclientandroidlib.Header;
 import ch.boye.httpclientandroidlib.HttpEntity;
@@ -26,8 +28,6 @@ import ch.boye.httpclientandroidlib.StatusLine;
 import ch.boye.httpclientandroidlib.client.HttpResponseException;
 import ch.boye.httpclientandroidlib.entity.BufferedHttpEntity;
 import ch.boye.httpclientandroidlib.util.EntityUtils;
-
-import java.io.IOException;
 
 /**
  * Used to intercept and handle the responses from requests made using

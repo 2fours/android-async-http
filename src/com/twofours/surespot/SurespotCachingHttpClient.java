@@ -6,11 +6,9 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
-import java.net.URLEncoder;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.graphics.drawable.shapes.ArcShape;
 import android.os.Build;
 import android.os.Environment;
 import android.util.Log;
@@ -22,10 +20,7 @@ import ch.boye.httpclientandroidlib.client.cache.HttpCacheEntry;
 import ch.boye.httpclientandroidlib.client.cache.HttpCacheStorage;
 import ch.boye.httpclientandroidlib.client.cache.HttpCacheUpdateCallback;
 import ch.boye.httpclientandroidlib.client.cache.HttpCacheUpdateException;
-import ch.boye.httpclientandroidlib.client.params.ClientPNames;
-import ch.boye.httpclientandroidlib.client.params.CookiePolicy;
 import ch.boye.httpclientandroidlib.impl.client.AbstractHttpClient;
-import ch.boye.httpclientandroidlib.impl.client.DefaultHttpClient;
 import ch.boye.httpclientandroidlib.impl.client.cache.CacheConfig;
 import ch.boye.httpclientandroidlib.impl.client.cache.CachingHttpClient;
 
@@ -37,7 +32,7 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 	private AbstractHttpClient mAbstractHttpClient;
 	private static SurespotHttpCacheStorage mCacheStorage;
 
-	private static final String DISK_CACHE_SUBDIR = "http";
+	
 	private static SurespotCachingHttpClient mInstance = null;
 
 	public SurespotCachingHttpClient(Context context, CachingHttpClient diskCacheClient, AbstractHttpClient defaultHttpClient,
@@ -130,13 +125,14 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 	}
 
 	public static class SurespotHttpCacheStorage implements HttpCacheStorage {
+		private static final String DISK_CACHE_SUBDIR = "http";
 		private static final String TAG = "SurespotHttpCacheStorage";
 		private com.jakewharton.DiskLruCache mCache;
 		private File mCacheDir;
 
 		public SurespotHttpCacheStorage(Context context) throws IOException {
 
-			mCacheDir = getDiskCacheDir(context, "http");
+			mCacheDir = getDiskCacheDir(context, DISK_CACHE_SUBDIR);
 
 			Log.v(TAG, "storage cache dir: " + mCacheDir);
 
@@ -310,7 +306,7 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 
 	}
 
-	public static void clearCache() {
+	public void clearCache() {
 		mCacheStorage.clearCache();
 	}
 

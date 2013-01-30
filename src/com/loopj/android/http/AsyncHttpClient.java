@@ -18,7 +18,6 @@
 
 package com.loopj.android.http;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
@@ -32,9 +31,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.zip.GZIPInputStream;
 
-import com.twofours.surespot.SurespotCachingHttpClient;
-import com.twofours.surespot.SurespotCachingHttpClient.SurespotHttpCacheStorage;
-
+import android.content.Context;
 import ch.boye.httpclientandroidlib.Header;
 import ch.boye.httpclientandroidlib.HeaderElement;
 import ch.boye.httpclientandroidlib.HttpEntity;
@@ -63,17 +60,16 @@ import ch.boye.httpclientandroidlib.conn.ssl.SSLSocketFactory;
 import ch.boye.httpclientandroidlib.entity.HttpEntityWrapper;
 import ch.boye.httpclientandroidlib.impl.client.DefaultHttpClient;
 import ch.boye.httpclientandroidlib.impl.client.cache.CacheConfig;
-import ch.boye.httpclientandroidlib.impl.client.cache.CachingHttpClient;
 import ch.boye.httpclientandroidlib.impl.conn.tsccm.ThreadSafeClientConnManager;
 import ch.boye.httpclientandroidlib.params.BasicHttpParams;
-import ch.boye.httpclientandroidlib.params.HttpParams;
 import ch.boye.httpclientandroidlib.params.HttpConnectionParams;
+import ch.boye.httpclientandroidlib.params.HttpParams;
 import ch.boye.httpclientandroidlib.params.HttpProtocolParams;
 import ch.boye.httpclientandroidlib.protocol.BasicHttpContext;
 import ch.boye.httpclientandroidlib.protocol.HttpContext;
 import ch.boye.httpclientandroidlib.protocol.SyncBasicHttpContext;
 
-import android.content.Context;
+import com.twofours.surespot.SurespotCachingHttpClient;
 
 
 /**
@@ -99,7 +95,7 @@ public class AsyncHttpClient {
     private static final String VERSION = "1.4.1";
 
     private static final int DEFAULT_MAX_CONNECTIONS = 10;
-    private static final int DEFAULT_SOCKET_TIMEOUT = 10 * 1000;
+    private static final int DEFAULT_SOCKET_TIMEOUT = 4 * 1000;
     private static final int DEFAULT_MAX_RETRIES = 5;
     private static final int DEFAULT_SOCKET_BUFFER_SIZE = 8192;
     private static final String HEADER_ACCEPT_ENCODING = "Accept-Encoding";
@@ -137,12 +133,7 @@ public class AsyncHttpClient {
         SchemeRegistry schemeRegistry = new SchemeRegistry();
         schemeRegistry.register(new Scheme("http", PlainSocketFactory.getSocketFactory(), 80));
         schemeRegistry.register(new Scheme("https", SSLSocketFactory.getSocketFactory(), 443));
-        ThreadSafeClientConnManager cm = new ThreadSafeClientConnManager(httpParams, schemeRegistry);
-
-        CacheConfig memoryCacheConfig = new CacheConfig();  
-        memoryCacheConfig.setMaxCacheEntries(100);
-        memoryCacheConfig.setMaxObjectSizeBytes(200000);
-   
+        ThreadSafeClientConnManager cm = new ThreadSafeClientConnManager(httpParams, schemeRegistry);    
         
         httpContext = new SyncBasicHttpContext(new BasicHttpContext());
         DefaultHttpClient defaultClient = new DefaultHttpClient(cm, httpParams);

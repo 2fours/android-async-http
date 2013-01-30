@@ -2,14 +2,12 @@ package com.loopj.android.http;
 
 import java.io.IOException;
 
-import com.twofours.surespot.SurespotCachingHttpClient;
-
-import ch.boye.httpclientandroidlib.client.methods.HttpUriRequest;
-import ch.boye.httpclientandroidlib.impl.client.DefaultHttpClient;
-import ch.boye.httpclientandroidlib.protocol.HttpContext;
-
 import android.content.Context;
 import android.os.Message;
+import ch.boye.httpclientandroidlib.client.methods.HttpUriRequest;
+import ch.boye.httpclientandroidlib.protocol.HttpContext;
+
+import com.twofours.surespot.SurespotCachingHttpClient;
 
 public abstract class SyncHttpClient extends AsyncHttpClient {
 	public SyncHttpClient(Context context) throws IOException {

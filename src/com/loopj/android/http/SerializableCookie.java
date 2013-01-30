@@ -18,10 +18,10 @@
 
 package com.loopj.android.http;
 
-import java.io.Serializable;
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.IOException;
+import java.io.Serializable;
 import java.util.Date;
 
 import ch.boye.httpclientandroidlib.cookie.Cookie;
