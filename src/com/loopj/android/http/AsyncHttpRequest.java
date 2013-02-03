@@ -137,6 +137,7 @@ class AsyncHttpRequest implements Runnable {
                 }
                 return;
             } catch (IOException e) {
+            	Log.w(TAG,"makeRequestWithRetries",e);
                 cause = e;
                 retry = retryHandler.retryRequest(cause, ++executionCount, context);
             } catch (NullPointerException e) {

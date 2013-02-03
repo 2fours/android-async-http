@@ -6,8 +6,14 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.security.KeyManagementException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.cert.X509Certificate;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -22,6 +28,8 @@ import ch.boye.httpclientandroidlib.client.cache.HttpCacheEntry;
 import ch.boye.httpclientandroidlib.client.cache.HttpCacheStorage;
 import ch.boye.httpclientandroidlib.client.cache.HttpCacheUpdateCallback;
 import ch.boye.httpclientandroidlib.client.cache.HttpCacheUpdateException;
+import ch.boye.httpclientandroidlib.conn.scheme.Scheme;
+import ch.boye.httpclientandroidlib.conn.ssl.SSLSocketFactory;
 import ch.boye.httpclientandroidlib.impl.client.AbstractHttpClient;
 import ch.boye.httpclientandroidlib.impl.client.cache.CacheConfig;
 import ch.boye.httpclientandroidlib.impl.client.cache.CachingHttpClient;
@@ -52,6 +60,26 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 
 	}
 
+	public static TrustManager[] getTrustingManager() {
+		TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
+			@Override
+			public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+				return null;
+			}
+
+			@Override
+			public void checkClientTrusted(X509Certificate[] certs, String authType) {
+				// Do nothing
+			}
+
+			@Override
+			public void checkServerTrusted(X509Certificate[] certs, String authType) {
+				// Do nothing
+			}
+
+		} };
+		return trustAllCerts;
+	}
 	/**
 	 * Use disk cache only
 	 * 
@@ -61,13 +89,36 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 	 */
 	public SurespotCachingHttpClient(Context context, AbstractHttpClient defaultHttpClient) throws IOException {
 		super(defaultHttpClient, getHttpCacheStorage(context), getDiskCacheConfig());
-//		log.enableDebug(true);
-//		log.enableError(true);
-//		log.enableInfo(true);
-//		log.enableTrace(true);
-//		log.enableWarn(true);
+		log.enableDebug(true);
+		log.enableError(true);
+		log.enableInfo(true);
+		log.enableTrace(true);
+		log.enableWarn(true);
 
 		mAbstractHttpClient = defaultHttpClient;
+		
+
+//        SSLContext sc;
+//		try {
+//			sc = SSLContext.getInstance("SSL");
+//			sc.init(null, getTrustingManager(), null);
+//			SSLSocketFactory socketFactory = new SSLSocketFactory(sc);
+//	        Scheme sch = new Scheme("https", 443, socketFactory);
+//	        defaultHttpClient.getConnectionManager().getSchemeRegistry().register(sch);
+//	        
+//		}
+//		catch (NoSuchAlgorithmException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+//		catch (KeyManagementException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+        
+
+        
+		
 		// make it parse the cookie
 		// http://stackoverflow.com/questions/9500714/invalid-cookie-header-unable-to-parse-expires-attribute-when-expires-attribute
 		// 01-28 22:01:25.105: W/ResponseProcessCookies(23413): Invalid cookie header:

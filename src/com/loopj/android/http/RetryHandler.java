@@ -102,7 +102,7 @@ public class RetryHandler implements HttpRequestRetryHandler {
 		}
 
 		if (retry) {
-			Log.v(TAG, "retryRequest, executionCount: " + executionCount);
+			Log.w(TAG, "retryRequest, executionCount: " + executionCount, exception);
 			int timerInterval = (int) (Math.pow(2, executionCount) * 1000);
 			Log.v(TAG, "retryRequest, setting retry interval to: " + timerInterval);
 			SystemClock.sleep(timerInterval);
