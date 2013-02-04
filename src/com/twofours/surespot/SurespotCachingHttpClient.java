@@ -38,7 +38,7 @@ import ch.boye.httpclientandroidlib.impl.client.cache.CachingHttpClient;
 import com.jakewharton.DiskLruCache;
 import com.jakewharton.DiskLruCache.Snapshot;
 import com.loopj.android.http.RetryHandler;
-import com.twofours.surespot.socketio.WebClientDevWrapper;
+import com.twofours.surespot.common.WebClientDevWrapper;
 
 public class SurespotCachingHttpClient extends CachingHttpClient {
 	private AbstractHttpClient mAbstractHttpClient;

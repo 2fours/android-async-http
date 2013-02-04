@@ -109,6 +109,7 @@ public class AsyncHttpClient {
     private static int socketTimeout = DEFAULT_SOCKET_TIMEOUT;
 
     private final SurespotCachingHttpClient cachingHttpClient;    
+    private final DefaultHttpClient mDefaultHttpClient;
     private final HttpContext httpContext;
     private ThreadPoolExecutor threadPool;
     private final Map<Context, List<WeakReference<Future<?>>>> requestMap;
@@ -138,7 +139,7 @@ public class AsyncHttpClient {
 
         SchemeRegistry schemeRegistry = new SchemeRegistry();
         schemeRegistry.register(new Scheme("http", PlainSocketFactory.getSocketFactory(), 80));
-        schemeRegistry.register(new Scheme("https", SSLSocketFactory.getSocketFactory(), 443));
+        //schemeRegistry.register(new Scheme("https", SSLSocketFactory.getSocketFactory(), 443));
         ThreadSafeClientConnManager cm = new ThreadSafeClientConnManager(httpParams, schemeRegistry);    
      
      //   PoolingClientConnectionManager pm = new PoolingClientConnectionManager(schemeRegistry);
@@ -147,10 +148,9 @@ public class AsyncHttpClient {
         
         
         httpContext = new SyncBasicHttpContext(new BasicHttpContext());
-        DefaultHttpClient defaultClient = new DefaultHttpClient(cm, httpParams);        
-        cachingHttpClient = SurespotCachingHttpClient.createSurespotDiskCachingHttpClient(context, defaultClient);
-        
-        cachingHttpClient.addRequestInterceptor(new HttpRequestInterceptor() {
+        mDefaultHttpClient = new DefaultHttpClient(cm, httpParams);        
+        mDefaultHttpClient.setHttpRequestRetryHandler(new RetryHandler(DEFAULT_MAX_RETRIES));
+        mDefaultHttpClient.addRequestInterceptor(new HttpRequestInterceptor() {
             public void process(HttpRequest request, HttpContext context) {
                 if (!request.containsHeader(HEADER_ACCEPT_ENCODING)) {
                     request.addHeader(HEADER_ACCEPT_ENCODING, ENCODING_GZIP);
@@ -161,7 +161,7 @@ public class AsyncHttpClient {
             }
         });
 
-        cachingHttpClient.addResponseInterceptor(new HttpResponseInterceptor() {
+        mDefaultHttpClient.addResponseInterceptor(new HttpResponseInterceptor() {
             public void process(HttpResponse response, HttpContext context) {
                 final HttpEntity entity = response.getEntity();
                 if (entity == null) {
@@ -179,7 +179,8 @@ public class AsyncHttpClient {
             }
         });
 
-        cachingHttpClient.setHttpRequestRetryHandler(new RetryHandler(DEFAULT_MAX_RETRIES));
+        cachingHttpClient = SurespotCachingHttpClient.createSurespotDiskCachingHttpClient(context, mDefaultHttpClient);      
+        
         threadPool = (ThreadPoolExecutor)Executors.newCachedThreadPool();        
         requestMap = new WeakHashMap<Context, List<WeakReference<Future<?>>>>();
         clientHeaderMap = new HashMap<String, String>();
@@ -190,8 +191,12 @@ public class AsyncHttpClient {
      * additional fine-grained settings for requests by accessing the
      * client's ConnectionManager, HttpParams and SchemeRegistry.
      */
-    public HttpClient getHttpClient() {
+    public SurespotCachingHttpClient getCachingHttpClient() {
         return this.cachingHttpClient;
+    }
+    
+    public DefaultHttpClient getDefaultHttpClient() {
+    	return mDefaultHttpClient;
     }
 
     /**
