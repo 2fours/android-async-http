@@ -31,9 +31,11 @@ import java.net.UnknownHostException;
 import java.util.HashSet;
 import java.util.Iterator;
 
+import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 
 import android.os.SystemClock;
+
 import android.util.Log;
 import ch.boye.httpclientandroidlib.NoHttpResponseException;
 import ch.boye.httpclientandroidlib.client.HttpRequestRetryHandler;
@@ -61,7 +63,7 @@ public class RetryHandler implements HttpRequestRetryHandler {
 		
 		exceptionBlacklist.add(InterruptedIOException.class);
 		// never retry SSL handshake failures
-		exceptionBlacklist.add(SSLHandshakeException.class);
+		exceptionBlacklist.add(SSLException.class);
 	}
 
 	private final int maxRetries;
