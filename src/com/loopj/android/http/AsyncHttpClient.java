@@ -123,6 +123,7 @@ public class AsyncHttpClient {
     public AsyncHttpClient(Context context) throws IOException {
         BasicHttpParams httpParams = new BasicHttpParams();
 
+        
         ConnManagerParams.setTimeout(httpParams, socketTimeout);
         ConnManagerParams.setMaxConnectionsPerRoute(httpParams, new ConnPerRouteBean(maxConnections));
         ConnManagerParams.setMaxTotalConnections(httpParams, DEFAULT_MAX_CONNECTIONS);
@@ -138,7 +139,7 @@ public class AsyncHttpClient {
         HttpProtocolParams.setUserAgent(httpParams, String.format("android-async-http/%s (http://loopj.com/android-async-http)", VERSION));
 
         SchemeRegistry schemeRegistry = new SchemeRegistry();
-        schemeRegistry.register(new Scheme("http", PlainSocketFactory.getSocketFactory(), 80));
+      //  schemeRegistry.register(new Scheme("http", PlainSocketFactory.getSocketFactory(), 80));
         //schemeRegistry.register(new Scheme("https", SSLSocketFactory.getSocketFactory(), 443));
         ThreadSafeClientConnManager cm = new ThreadSafeClientConnManager(httpParams, schemeRegistry);    
      
