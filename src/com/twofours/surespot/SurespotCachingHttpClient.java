@@ -6,31 +6,20 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
-import java.security.KeyManagementException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.cert.X509Certificate;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-
-import android.annotation.SuppressLint;
 import android.content.Context;
-import android.os.Build;
-import android.os.Environment;
 import android.util.Log;
 import ch.boye.httpclientandroidlib.HttpRequestInterceptor;
 import ch.boye.httpclientandroidlib.HttpResponseInterceptor;
+import ch.boye.httpclientandroidlib.client.CookieStore;
 import ch.boye.httpclientandroidlib.client.CredentialsProvider;
-import ch.boye.httpclientandroidlib.client.HttpClient;
 import ch.boye.httpclientandroidlib.client.HttpRequestRetryHandler;
 import ch.boye.httpclientandroidlib.client.cache.HttpCacheEntry;
 import ch.boye.httpclientandroidlib.client.cache.HttpCacheStorage;
 import ch.boye.httpclientandroidlib.client.cache.HttpCacheUpdateCallback;
 import ch.boye.httpclientandroidlib.client.cache.HttpCacheUpdateException;
-import ch.boye.httpclientandroidlib.conn.scheme.Scheme;
-import ch.boye.httpclientandroidlib.conn.ssl.SSLSocketFactory;
 import ch.boye.httpclientandroidlib.impl.client.AbstractHttpClient;
 import ch.boye.httpclientandroidlib.impl.client.cache.CacheConfig;
 import ch.boye.httpclientandroidlib.impl.client.cache.CachingHttpClient;
@@ -39,30 +28,13 @@ import com.jakewharton.DiskLruCache;
 import com.jakewharton.DiskLruCache.Snapshot;
 import com.loopj.android.http.RetryHandler;
 import com.twofours.surespot.common.FileUtils;
-import com.twofours.surespot.common.SurespotConstants;
 import com.twofours.surespot.common.WebClientDevWrapper;
 
 public class SurespotCachingHttpClient extends CachingHttpClient {
 	private AbstractHttpClient mAbstractHttpClient;
-	private static SurespotHttpCacheStorage mCacheStorage;
-
-	
+	private static SurespotHttpCacheStorage mCacheStorage;	
 	private static SurespotCachingHttpClient mInstance = null;
 
-	public SurespotCachingHttpClient(Context context, CachingHttpClient diskCacheClient, AbstractHttpClient defaultHttpClient,
-			SurespotHttpCacheStorage surespotHttpCacheStorage) {
-		super(diskCacheClient, getMemoryCacheConfig());
-		// log.enableDebug(true);
-		// log.enableError(true);
-		// log.enableInfo(true);
-		// log.enableTrace(true);
-		// log.enableWarn(true);
-
-		mAbstractHttpClient = defaultHttpClient;
-		mCacheStorage = surespotHttpCacheStorage;
-//		defaultHttpClient.getParams().setParameter(ClientPNames.COOKIE_POLICY, CookiePolicy.BEST_MATCH);
-
-	}
 	
 	/**
 	 * Use disk cache only
@@ -71,8 +43,8 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 	 * @param defaultHttpClient
 	 * @throws IOException
 	 */
-	public SurespotCachingHttpClient(Context context, AbstractHttpClient defaultHttpClient) throws IOException {
-		super(defaultHttpClient, getHttpCacheStorage(context), getDiskCacheConfig());
+	public SurespotCachingHttpClient(Context context, AbstractHttpClient defaultHttpClient, String cacheName) throws IOException {
+		super(defaultHttpClient, getHttpCacheStorage(context, cacheName), getDiskCacheConfig());
 		log.enableDebug(true);
 		log.enableError(true);
 		log.enableInfo(true);
@@ -82,45 +54,18 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 		mAbstractHttpClient = WebClientDevWrapper.wrapClient(defaultHttpClient);		
 	}
 
-	private static HttpCacheStorage getHttpCacheStorage(Context context) throws IOException {
+	private static HttpCacheStorage getHttpCacheStorage(Context context, String cacheName) throws IOException {
 		if (mCacheStorage == null) {
-			mCacheStorage = new SurespotHttpCacheStorage(context);
+			mCacheStorage = new SurespotHttpCacheStorage(context, cacheName);
 		}
 		return mCacheStorage;
 	}
 
-	/**
-	 * singleton - TODO dependency injection
-	 * 
-	 * @param context
-	 * @param abstractClient
-	 * @return
-	 * @throws IOException
-	 */
-	public static SurespotCachingHttpClient createSurespotCachingHttpClient(Context context, AbstractHttpClient abstractClient)
+
+	public static SurespotCachingHttpClient createSurespotDiskCachingHttpClient(Context context, AbstractHttpClient abstractClient, String cacheName)
 			throws IOException {
 		if (mInstance == null) {
-
-			SurespotHttpCacheStorage storage = new SurespotHttpCacheStorage(context);
-
-			CachingHttpClient diskCacheClient = new CachingHttpClient(abstractClient, storage, getDiskCacheConfig());
-
-			// diskCacheClient.log.enableDebug(true);
-			// diskCacheClient.log.enableError(true);
-			// diskCacheClient.log.enableInfo(true);
-			// diskCacheClient.log.enableTrace(true);
-			// diskCacheClient.log.enableWarn(true);
-
-			SurespotCachingHttpClient client = new SurespotCachingHttpClient(context, diskCacheClient, abstractClient, storage);
-			mInstance = client;
-		}
-		return mInstance;
-	}
-
-	public static SurespotCachingHttpClient createSurespotDiskCachingHttpClient(Context context, AbstractHttpClient abstractClient)
-			throws IOException {
-		if (mInstance == null) {
-			SurespotCachingHttpClient client = new SurespotCachingHttpClient(context, abstractClient);
+			SurespotCachingHttpClient client = new SurespotCachingHttpClient(context, abstractClient, cacheName);
 			mInstance = client;
 		}
 		return mInstance;
@@ -156,9 +101,9 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 		private com.jakewharton.DiskLruCache mCache;
 		private File mCacheDir;
 
-		public SurespotHttpCacheStorage(Context context) throws IOException {
+		public SurespotHttpCacheStorage(Context context, String cacheName) throws IOException {
 
-			mCacheDir = FileUtils.getHttpCacheDir(context);
+			mCacheDir = FileUtils.getHttpCacheDir(context, cacheName);
 
 			Log.v(TAG, "storage cache dir: " + mCacheDir);
 
@@ -308,6 +253,10 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 	public void setHttpRequestRetryHandler(RetryHandler retryHandler) {
 		mAbstractHttpClient.setHttpRequestRetryHandler(retryHandler);
 
+	}
+	
+	public void setCookieStore(CookieStore cookieStore) {
+		mAbstractHttpClient.setCookieStore(cookieStore);
 	}
 
 	@Override

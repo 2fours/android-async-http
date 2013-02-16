@@ -180,7 +180,7 @@ public class AsyncHttpClient {
             }
         });
 
-        cachingHttpClient = SurespotCachingHttpClient.createSurespotDiskCachingHttpClient(context, mDefaultHttpClient);      
+        cachingHttpClient = SurespotCachingHttpClient.createSurespotDiskCachingHttpClient(context, mDefaultHttpClient, "async");      
         
         threadPool = (ThreadPoolExecutor)Executors.newCachedThreadPool();        
         requestMap = new WeakHashMap<Context, List<WeakReference<Future<?>>>>();
