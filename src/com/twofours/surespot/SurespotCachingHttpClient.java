@@ -33,7 +33,7 @@ import com.twofours.surespot.common.WebClientDevWrapper;
 public class SurespotCachingHttpClient extends CachingHttpClient {
 	private AbstractHttpClient mAbstractHttpClient;
 	private static SurespotHttpCacheStorage mCacheStorage;	
-	private static SurespotCachingHttpClient mInstance = null;
+	//private static SurespotCachingHttpClient mInstance = null;
 
 	
 	/**
@@ -64,11 +64,11 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 
 	public static SurespotCachingHttpClient createSurespotDiskCachingHttpClient(Context context, AbstractHttpClient abstractClient, String cacheName)
 			throws IOException {
-		if (mInstance == null) {
-			SurespotCachingHttpClient client = new SurespotCachingHttpClient(context, abstractClient, cacheName);
-			mInstance = client;
-		}
-		return mInstance;
+	//	if (mInstance == null) {
+			return new SurespotCachingHttpClient(context, abstractClient, cacheName);
+		//	mInstance = client;
+	//	}
+		//return mInstance;
 	}
 
 	private static String generateKey(String key) {
@@ -232,7 +232,7 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 		cacheConfig.setMaxObjectSizeBytes(250000);
 		return cacheConfig;
 	}
-
+	
 	public HttpRequestRetryHandler getHttpRequestRetryHandler() {
 		return mAbstractHttpClient.getHttpRequestRetryHandler();
 	}
