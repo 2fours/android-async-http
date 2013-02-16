@@ -158,7 +158,7 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 
 		public SurespotHttpCacheStorage(Context context) throws IOException {
 
-			mCacheDir = FileUtils.getDiskCacheDir(context, SurespotConstants.FileLocations.HTTP_CACHE);
+			mCacheDir = FileUtils.getHttpCacheDir(context);
 
 			Log.v(TAG, "storage cache dir: " + mCacheDir);
 
