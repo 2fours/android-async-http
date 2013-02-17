@@ -28,6 +28,7 @@ import com.jakewharton.DiskLruCache;
 import com.jakewharton.DiskLruCache.Snapshot;
 import com.loopj.android.http.RetryHandler;
 import com.twofours.surespot.common.FileUtils;
+import com.twofours.surespot.common.SurespotConstants;
 import com.twofours.surespot.common.WebClientDevWrapper;
 
 public class SurespotCachingHttpClient extends CachingHttpClient {
@@ -51,7 +52,9 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 		log.enableTrace(true);
 		log.enableWarn(true);
 
-		mAbstractHttpClient = WebClientDevWrapper.wrapClient(defaultHttpClient);		
+		WebClientDevWrapper.wrapClient(defaultHttpClient);
+		mAbstractHttpClient = defaultHttpClient;
+						
 	}
 
 	private static HttpCacheStorage getHttpCacheStorage(Context context, String cacheName) throws IOException {
@@ -62,13 +65,9 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 	}
 
 
-	public static SurespotCachingHttpClient createSurespotDiskCachingHttpClient(Context context, AbstractHttpClient abstractClient, String cacheName)
+	public static SurespotCachingHttpClient createSurespotDiskCachingHttpClient(Context context, AbstractHttpClient abstractClient)
 			throws IOException {
-	//	if (mInstance == null) {
-			return new SurespotCachingHttpClient(context, abstractClient, cacheName);
-		//	mInstance = client;
-	//	}
-		//return mInstance;
+			return new SurespotCachingHttpClient(context, abstractClient, "http");
 	}
 
 	private static String generateKey(String key) {

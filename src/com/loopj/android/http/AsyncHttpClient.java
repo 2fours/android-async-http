@@ -180,7 +180,7 @@ public class AsyncHttpClient {
             }
         });
 
-        cachingHttpClient = SurespotCachingHttpClient.createSurespotDiskCachingHttpClient(context, mDefaultHttpClient, "async");      
+        cachingHttpClient = SurespotCachingHttpClient.createSurespotDiskCachingHttpClient(context, mDefaultHttpClient);      
         
         threadPool = (ThreadPoolExecutor)Executors.newCachedThreadPool();        
         requestMap = new WeakHashMap<Context, List<WeakReference<Future<?>>>>();
@@ -213,8 +213,8 @@ public class AsyncHttpClient {
      * Sets an optional CookieStore to use when making requests
      * @param cookieStore The CookieStore implementation to use, usually an instance of {@link PersistentCookieStore}
      */
-    public void setCookieStore(CookieStore cookieStore) {
-        httpContext.setAttribute(ClientContext.COOKIE_STORE, cookieStore);
+    public void setCookieStore(CookieStore cookieStore) {      
+        mDefaultHttpClient.setCookieStore(cookieStore);
     }
 
     /**
