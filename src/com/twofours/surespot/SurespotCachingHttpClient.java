@@ -13,6 +13,7 @@ import android.content.Context;
 import android.util.Log;
 import ch.boye.httpclientandroidlib.HttpRequestInterceptor;
 import ch.boye.httpclientandroidlib.HttpResponseInterceptor;
+import ch.boye.httpclientandroidlib.HttpVersion;
 import ch.boye.httpclientandroidlib.client.CookieStore;
 import ch.boye.httpclientandroidlib.client.CredentialsProvider;
 import ch.boye.httpclientandroidlib.client.HttpRequestRetryHandler;
@@ -20,60 +21,92 @@ import ch.boye.httpclientandroidlib.client.cache.HttpCacheEntry;
 import ch.boye.httpclientandroidlib.client.cache.HttpCacheStorage;
 import ch.boye.httpclientandroidlib.client.cache.HttpCacheUpdateCallback;
 import ch.boye.httpclientandroidlib.client.cache.HttpCacheUpdateException;
+import ch.boye.httpclientandroidlib.conn.params.ConnManagerParams;
+import ch.boye.httpclientandroidlib.conn.params.ConnPerRouteBean;
+import ch.boye.httpclientandroidlib.conn.scheme.SchemeRegistry;
 import ch.boye.httpclientandroidlib.impl.client.AbstractHttpClient;
+import ch.boye.httpclientandroidlib.impl.client.DefaultHttpClient;
 import ch.boye.httpclientandroidlib.impl.client.cache.CacheConfig;
 import ch.boye.httpclientandroidlib.impl.client.cache.CachingHttpClient;
+import ch.boye.httpclientandroidlib.impl.conn.PoolingClientConnectionManager;
+import ch.boye.httpclientandroidlib.params.BasicHttpParams;
+import ch.boye.httpclientandroidlib.params.HttpConnectionParams;
+import ch.boye.httpclientandroidlib.params.HttpProtocolParams;
 
 import com.jakewharton.DiskLruCache;
 import com.jakewharton.DiskLruCache.Snapshot;
 import com.loopj.android.http.RetryHandler;
 import com.twofours.surespot.common.FileUtils;
-import com.twofours.surespot.common.SurespotConstants;
 import com.twofours.surespot.common.WebClientDevWrapper;
 
 public class SurespotCachingHttpClient extends CachingHttpClient {
-	private AbstractHttpClient mAbstractHttpClient;
-	private static SurespotHttpCacheStorage mCacheStorage;	
-	//private static SurespotCachingHttpClient mInstance = null;
 
-	
+	private static final int DEFAULT_MAX_CONNECTIONS = 200;
+	private static final int DEFAULT_SOCKET_TIMEOUT = 15 * 1000;
+	private static final int DEFAULT_MAX_RETRIES = 5;
+	private static final int DEFAULT_SOCKET_BUFFER_SIZE = 8192;
+	private static int maxConnections = DEFAULT_MAX_CONNECTIONS;
+	private static int socketTimeout = DEFAULT_SOCKET_TIMEOUT;
+
+	private AbstractHttpClient mAbstractHttpClient;
+	private static SurespotHttpCacheStorage mCacheStorage;
+
 	/**
 	 * Use disk cache only
 	 * 
 	 * @param context
-	 * @param defaultHttpClient
+	 * @param abstractHttpClient
 	 * @throws IOException
 	 */
-	public SurespotCachingHttpClient(Context context, AbstractHttpClient defaultHttpClient, String cacheName) throws IOException {
-		super(defaultHttpClient, getHttpCacheStorage(context, cacheName), getDiskCacheConfig());
+	public SurespotCachingHttpClient(Context context, AbstractHttpClient abstractHttpClient) throws IOException {
+		super(abstractHttpClient, getHttpCacheStorage(context), getDiskCacheConfig());
 		log.enableDebug(true);
 		log.enableError(true);
 		log.enableInfo(true);
 		log.enableTrace(true);
 		log.enableWarn(true);
 
-		WebClientDevWrapper.wrapClient(defaultHttpClient);
-		mAbstractHttpClient = defaultHttpClient;
-						
+		mAbstractHttpClient = abstractHttpClient;
+
 	}
 
-	private static HttpCacheStorage getHttpCacheStorage(Context context, String cacheName) throws IOException {
+	private static HttpCacheStorage getHttpCacheStorage(Context context) throws IOException {
 		if (mCacheStorage == null) {
-			mCacheStorage = new SurespotHttpCacheStorage(context, cacheName);
+			mCacheStorage = new SurespotHttpCacheStorage(context);
 		}
 		return mCacheStorage;
 	}
 
+	public static SurespotCachingHttpClient createSurespotDiskCachingHttpClient(Context context) throws IOException {
 
-	public static SurespotCachingHttpClient createSurespotDiskCachingHttpClient(Context context, AbstractHttpClient abstractClient)
-			throws IOException {
-			return new SurespotCachingHttpClient(context, abstractClient, "http");
+		BasicHttpParams httpParams = new BasicHttpParams();
+
+		ConnManagerParams.setTimeout(httpParams, socketTimeout);
+		ConnManagerParams.setMaxConnectionsPerRoute(httpParams, new ConnPerRouteBean(maxConnections));
+		ConnManagerParams.setMaxTotalConnections(httpParams, DEFAULT_MAX_CONNECTIONS);
+
+		HttpConnectionParams.setSoTimeout(httpParams, socketTimeout);
+		HttpConnectionParams.setConnectionTimeout(httpParams, socketTimeout);
+		HttpConnectionParams.setTcpNoDelay(httpParams, true);
+		HttpConnectionParams.setSocketBufferSize(httpParams, DEFAULT_SOCKET_BUFFER_SIZE);
+
+		HttpProtocolParams.setVersion(httpParams, HttpVersion.HTTP_1_1);
+
+		SchemeRegistry schemeRegistry = new SchemeRegistry();
+
+		PoolingClientConnectionManager pm = new PoolingClientConnectionManager(schemeRegistry);
+		pm.setDefaultMaxPerRoute(100);
+
+		DefaultHttpClient defaultHttpClient = new DefaultHttpClient(pm, httpParams);
+		defaultHttpClient.setHttpRequestRetryHandler(new RetryHandler(DEFAULT_MAX_RETRIES));
+		WebClientDevWrapper.wrapClient(defaultHttpClient);
+		return new SurespotCachingHttpClient(context, defaultHttpClient);
 	}
 
 	private static String generateKey(String key) {
 		return md5(key);
 	}
-	
+
 	public static String md5(String s) {
 		try {
 			// Create MD5 Hash
@@ -94,20 +127,15 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 		return "";
 	}
 
-
 	public static class SurespotHttpCacheStorage implements HttpCacheStorage {
 		private static final String TAG = "SurespotHttpCacheStorage";
 		private com.jakewharton.DiskLruCache mCache;
 		private File mCacheDir;
 
-		public SurespotHttpCacheStorage(Context context, String cacheName) throws IOException {
-
-			mCacheDir = FileUtils.getHttpCacheDir(context, cacheName);
-
+		public SurespotHttpCacheStorage(Context context) throws IOException {
+			mCacheDir = FileUtils.getHttpCacheDir(context, "http");
 			Log.v(TAG, "storage cache dir: " + mCacheDir);
-
 			mCache = DiskLruCache.open(mCacheDir, 200, 1, Integer.MAX_VALUE);
-
 		}
 
 		@Override
@@ -183,14 +211,14 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 
 			clearCache(mCacheDir);
 		}
-		
+
 		public void close() {
 			try {
 				mCache.flush();
-			//	mCache.close();
+				// mCache.close();
 			}
 			catch (IOException e) {
-				Log.w(TAG, "close",e);
+				Log.w(TAG, "close", e);
 			}
 		}
 
@@ -208,21 +236,12 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 			}
 		}
 
-		
-
 	}
 
 	public void clearCache() {
 		mCacheStorage.clearCache();
 	}
 	
-	private static CacheConfig getMemoryCacheConfig() {
-
-		CacheConfig cacheConfig = new CacheConfig();
-		cacheConfig.setMaxCacheEntries(50);
-		cacheConfig.setMaxObjectSizeBytes(250000);
-		return cacheConfig;
-	}
 
 	public static CacheConfig getDiskCacheConfig() {
 
@@ -231,7 +250,7 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 		cacheConfig.setMaxObjectSizeBytes(250000);
 		return cacheConfig;
 	}
-	
+
 	public HttpRequestRetryHandler getHttpRequestRetryHandler() {
 		return mAbstractHttpClient.getHttpRequestRetryHandler();
 	}
@@ -253,9 +272,13 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 		mAbstractHttpClient.setHttpRequestRetryHandler(retryHandler);
 
 	}
-	
+
 	public void setCookieStore(CookieStore cookieStore) {
 		mAbstractHttpClient.setCookieStore(cookieStore);
+	}
+
+	public AbstractHttpClient getAbstractHttpClient() {
+		return mAbstractHttpClient;
 	}
 
 	@Override

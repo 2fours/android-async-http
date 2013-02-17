@@ -32,15 +32,12 @@ import java.util.HashSet;
 import java.util.Iterator;
 
 import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLHandshakeException;
 
 import android.os.SystemClock;
-
 import android.util.Log;
 import ch.boye.httpclientandroidlib.NoHttpResponseException;
 import ch.boye.httpclientandroidlib.client.HttpRequestRetryHandler;
 import ch.boye.httpclientandroidlib.client.methods.HttpUriRequest;
-import ch.boye.httpclientandroidlib.conn.HttpHostConnectException;
 import ch.boye.httpclientandroidlib.protocol.ExecutionContext;
 import ch.boye.httpclientandroidlib.protocol.HttpContext;
 

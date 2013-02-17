@@ -33,39 +33,21 @@ import java.util.zip.GZIPInputStream;
 
 import android.content.Context;
 import ch.boye.httpclientandroidlib.Header;
-import ch.boye.httpclientandroidlib.HeaderElement;
 import ch.boye.httpclientandroidlib.HttpEntity;
-import ch.boye.httpclientandroidlib.HttpHost;
-import ch.boye.httpclientandroidlib.HttpRequest;
-import ch.boye.httpclientandroidlib.HttpRequestInterceptor;
-import ch.boye.httpclientandroidlib.HttpResponse;
-import ch.boye.httpclientandroidlib.HttpResponseInterceptor;
-import ch.boye.httpclientandroidlib.HttpVersion;
 import ch.boye.httpclientandroidlib.auth.AuthScope;
 import ch.boye.httpclientandroidlib.auth.UsernamePasswordCredentials;
 import ch.boye.httpclientandroidlib.client.CookieStore;
-import ch.boye.httpclientandroidlib.client.HttpClient;
 import ch.boye.httpclientandroidlib.client.methods.HttpDelete;
 import ch.boye.httpclientandroidlib.client.methods.HttpEntityEnclosingRequestBase;
 import ch.boye.httpclientandroidlib.client.methods.HttpGet;
 import ch.boye.httpclientandroidlib.client.methods.HttpPost;
 import ch.boye.httpclientandroidlib.client.methods.HttpPut;
 import ch.boye.httpclientandroidlib.client.methods.HttpUriRequest;
-import ch.boye.httpclientandroidlib.client.protocol.ClientContext;
 import ch.boye.httpclientandroidlib.conn.params.ConnManagerParams;
-import ch.boye.httpclientandroidlib.conn.params.ConnPerRoute;
-import ch.boye.httpclientandroidlib.conn.params.ConnPerRouteBean;
-import ch.boye.httpclientandroidlib.conn.routing.HttpRoute;
-import ch.boye.httpclientandroidlib.conn.scheme.PlainSocketFactory;
 import ch.boye.httpclientandroidlib.conn.scheme.Scheme;
-import ch.boye.httpclientandroidlib.conn.scheme.SchemeRegistry;
 import ch.boye.httpclientandroidlib.conn.ssl.SSLSocketFactory;
 import ch.boye.httpclientandroidlib.entity.HttpEntityWrapper;
-import ch.boye.httpclientandroidlib.impl.client.DefaultHttpClient;
-import ch.boye.httpclientandroidlib.impl.client.cache.CacheConfig;
-import ch.boye.httpclientandroidlib.impl.conn.PoolingClientConnectionManager;
-import ch.boye.httpclientandroidlib.impl.conn.tsccm.ThreadSafeClientConnManager;
-import ch.boye.httpclientandroidlib.params.BasicHttpParams;
+import ch.boye.httpclientandroidlib.impl.client.AbstractHttpClient;
 import ch.boye.httpclientandroidlib.params.HttpConnectionParams;
 import ch.boye.httpclientandroidlib.params.HttpParams;
 import ch.boye.httpclientandroidlib.params.HttpProtocolParams;
@@ -96,20 +78,7 @@ import com.twofours.surespot.SurespotCachingHttpClient;
  * </pre>
  */
 public class AsyncHttpClient {
-    private static final String VERSION = "1.4.1";
-
-    private static final int DEFAULT_MAX_CONNECTIONS = 200;
-    private static final int DEFAULT_SOCKET_TIMEOUT = 15 * 1000;
-    private static final int DEFAULT_MAX_RETRIES = 5;
-    private static final int DEFAULT_SOCKET_BUFFER_SIZE = 8192;
-    private static final String HEADER_ACCEPT_ENCODING = "Accept-Encoding";
-    private static final String ENCODING_GZIP = "gzip";
-
-    private static int maxConnections = DEFAULT_MAX_CONNECTIONS;
-    private static int socketTimeout = DEFAULT_SOCKET_TIMEOUT;
-
     private final SurespotCachingHttpClient cachingHttpClient;    
-    private final DefaultHttpClient mDefaultHttpClient;
     private final HttpContext httpContext;
     private ThreadPoolExecutor threadPool;
     private final Map<Context, List<WeakReference<Future<?>>>> requestMap;
@@ -121,67 +90,8 @@ public class AsyncHttpClient {
      * @throws IOException 
      */
     public AsyncHttpClient(Context context) throws IOException {
-        BasicHttpParams httpParams = new BasicHttpParams();
-
-        
-        ConnManagerParams.setTimeout(httpParams, socketTimeout);
-        ConnManagerParams.setMaxConnectionsPerRoute(httpParams, new ConnPerRouteBean(maxConnections));
-        ConnManagerParams.setMaxTotalConnections(httpParams, DEFAULT_MAX_CONNECTIONS);
-        
-        
-
-        HttpConnectionParams.setSoTimeout(httpParams, socketTimeout);
-        HttpConnectionParams.setConnectionTimeout(httpParams, socketTimeout);
-        HttpConnectionParams.setTcpNoDelay(httpParams, true);
-        HttpConnectionParams.setSocketBufferSize(httpParams, DEFAULT_SOCKET_BUFFER_SIZE);
-
-        HttpProtocolParams.setVersion(httpParams, HttpVersion.HTTP_1_1);
-        HttpProtocolParams.setUserAgent(httpParams, String.format("android-async-http/%s (http://loopj.com/android-async-http)", VERSION));
-
-        SchemeRegistry schemeRegistry = new SchemeRegistry();
-      //  schemeRegistry.register(new Scheme("http", PlainSocketFactory.getSocketFactory(), 80));
-        //schemeRegistry.register(new Scheme("https", SSLSocketFactory.getSocketFactory(), 443));
-        ThreadSafeClientConnManager cm = new ThreadSafeClientConnManager(httpParams, schemeRegistry);    
-     
-     //   PoolingClientConnectionManager pm = new PoolingClientConnectionManager(schemeRegistry);
-     //   pm.setDefaultMaxPerRoute(200);
-        
-        
-        
+        cachingHttpClient = SurespotCachingHttpClient.createSurespotDiskCachingHttpClient(context);      
         httpContext = new SyncBasicHttpContext(new BasicHttpContext());
-        mDefaultHttpClient = new DefaultHttpClient(cm, httpParams);        
-        mDefaultHttpClient.setHttpRequestRetryHandler(new RetryHandler(DEFAULT_MAX_RETRIES));
-        mDefaultHttpClient.addRequestInterceptor(new HttpRequestInterceptor() {
-            public void process(HttpRequest request, HttpContext context) {
-                if (!request.containsHeader(HEADER_ACCEPT_ENCODING)) {
-                    request.addHeader(HEADER_ACCEPT_ENCODING, ENCODING_GZIP);
-                }
-                for (String header : clientHeaderMap.keySet()) {
-                    request.addHeader(header, clientHeaderMap.get(header));
-                }
-            }
-        });
-
-        mDefaultHttpClient.addResponseInterceptor(new HttpResponseInterceptor() {
-            public void process(HttpResponse response, HttpContext context) {
-                final HttpEntity entity = response.getEntity();
-                if (entity == null) {
-                    return;
-                }
-                final Header encoding = entity.getContentEncoding();
-                if (encoding != null) {
-                    for (HeaderElement element : encoding.getElements()) {
-                        if (element.getName().equalsIgnoreCase(ENCODING_GZIP)) {
-                            response.setEntity(new InflatingEntity(response.getEntity()));
-                            break;
-                        }
-                    }
-                }
-            }
-        });
-
-        cachingHttpClient = SurespotCachingHttpClient.createSurespotDiskCachingHttpClient(context, mDefaultHttpClient);      
-        
         threadPool = (ThreadPoolExecutor)Executors.newCachedThreadPool();        
         requestMap = new WeakHashMap<Context, List<WeakReference<Future<?>>>>();
         clientHeaderMap = new HashMap<String, String>();
@@ -196,8 +106,8 @@ public class AsyncHttpClient {
         return this.cachingHttpClient;
     }
     
-    public DefaultHttpClient getDefaultHttpClient() {
-    	return mDefaultHttpClient;
+    public AbstractHttpClient getAbstractHttpClient() {
+    	return cachingHttpClient.getAbstractHttpClient();
     }
 
     /**
@@ -214,7 +124,7 @@ public class AsyncHttpClient {
      * @param cookieStore The CookieStore implementation to use, usually an instance of {@link PersistentCookieStore}
      */
     public void setCookieStore(CookieStore cookieStore) {      
-        mDefaultHttpClient.setCookieStore(cookieStore);
+        cachingHttpClient.getAbstractHttpClient().setCookieStore(cookieStore);
     }
 
     /**
