@@ -133,7 +133,7 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 		private File mCacheDir;
 
 		public SurespotHttpCacheStorage(Context context) throws IOException {
-			mCacheDir = FileUtils.getHttpCacheDir(context, "http");
+			mCacheDir = FileUtils.getHttpCacheDir(context);
 			Log.v(TAG, "storage cache dir: " + mCacheDir);
 			mCache = DiskLruCache.open(mCacheDir, 200, 1, Integer.MAX_VALUE);
 		}
