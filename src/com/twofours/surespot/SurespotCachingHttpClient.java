@@ -37,6 +37,7 @@ import com.jakewharton.DiskLruCache;
 import com.jakewharton.DiskLruCache.Snapshot;
 import com.loopj.android.http.RetryHandler;
 import com.twofours.surespot.common.FileUtils;
+import com.twofours.surespot.common.SurespotLog;
 import com.twofours.surespot.common.WebClientDevWrapper;
 
 public class SurespotCachingHttpClient extends CachingHttpClient {
@@ -45,6 +46,7 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 	private static final int DEFAULT_SOCKET_TIMEOUT = 15 * 1000;
 	private static final int DEFAULT_MAX_RETRIES = 5;
 	private static final int DEFAULT_SOCKET_BUFFER_SIZE = 8192;
+	private static final String TAG = "SurespotCachingHttpClient";
 	private static int maxConnections = DEFAULT_MAX_CONNECTIONS;
 	private static int socketTimeout = DEFAULT_SOCKET_TIMEOUT;
 
@@ -167,7 +169,11 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 		@Override
 		public void putEntry(String key, HttpCacheEntry entry) throws IOException {
 			try {
-				DiskLruCache.Editor edit = mCache.edit(generateKey(key));
+			//	SurespotLog.v(TAG, "putting cache entry, url: " + key);
+				String gKey = generateKey(key);
+			//	SurespotLog.v(TAG, "putting cache entry, key: " + gKey);
+				
+				DiskLruCache.Editor edit = mCache.edit(gKey);
 
 				OutputStream outputStream = edit.newOutputStream(0);
 				ObjectOutputStream os = new ObjectOutputStream(outputStream);
@@ -184,7 +190,9 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 
 		@Override
 		public void removeEntry(String arg0) throws IOException {
-			mCache.remove(generateKey(arg0));
+			String gKey = generateKey(arg0);
+		//	SurespotLog.v(TAG, "removing cache entry, key: " + gKey);
+			mCache.remove(gKey);
 		}
 
 		@Override
@@ -241,7 +249,6 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 	public void clearCache() {
 		mCacheStorage.clearCache();
 	}
-	
 
 	public static CacheConfig getDiskCacheConfig() {
 
@@ -286,4 +293,13 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 		return true;
 	}
 
+	public void removeEntry(String key) {
+		try {
+			SurespotLog.v(TAG, "removing cache entry, url: " + key);					
+			mCacheStorage.removeEntry(key);
+		}
+		catch (IOException e) {
+			SurespotLog.w(TAG, "removeEntry", e);
+		}
+	}
 }
