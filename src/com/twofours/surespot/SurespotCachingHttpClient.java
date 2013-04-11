@@ -25,6 +25,7 @@ import ch.boye.httpclientandroidlib.conn.params.ConnManagerParams;
 import ch.boye.httpclientandroidlib.conn.params.ConnPerRouteBean;
 import ch.boye.httpclientandroidlib.conn.scheme.SchemeRegistry;
 import ch.boye.httpclientandroidlib.impl.client.AbstractHttpClient;
+import ch.boye.httpclientandroidlib.impl.client.DecompressingHttpClient;
 import ch.boye.httpclientandroidlib.impl.client.DefaultHttpClient;
 import ch.boye.httpclientandroidlib.impl.client.cache.CacheConfig;
 import ch.boye.httpclientandroidlib.impl.client.cache.CachingHttpClient;
@@ -61,7 +62,7 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 	 * @throws IOException
 	 */
 	public SurespotCachingHttpClient(Context context, AbstractHttpClient abstractHttpClient) throws IOException {
-		super(abstractHttpClient, getHttpCacheStorage(context), getDiskCacheConfig());
+		super(new DecompressingHttpClient(abstractHttpClient), getHttpCacheStorage(context), getDiskCacheConfig());
 		log.enableDebug(true);
 		log.enableError(true);
 		log.enableInfo(true);
@@ -142,6 +143,7 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 
 		@Override
 		public HttpCacheEntry getEntry(String arg0) throws IOException {
+			SurespotLog.v(TAG, "getting entry, url: " + arg0);
 			HttpCacheEntry entry = null;
 			try {
 				Snapshot snapshot = null;
@@ -169,10 +171,10 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 		@Override
 		public void putEntry(String key, HttpCacheEntry entry) throws IOException {
 			try {
-			//	SurespotLog.v(TAG, "putting cache entry, url: " + key);
+				SurespotLog.v(TAG, "putting cache entry, url: " + key);
 				String gKey = generateKey(key);
-			//	SurespotLog.v(TAG, "putting cache entry, key: " + gKey);
-				
+				//SurespotLog.v(TAG, "putting cache entry, key: " + gKey);
+
 				DiskLruCache.Editor edit = mCache.edit(gKey);
 
 				OutputStream outputStream = edit.newOutputStream(0);
@@ -183,7 +185,7 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 				edit.commit();
 			}
 			catch (Exception e) {
-				e.printStackTrace();
+				SurespotLog.w(TAG, "putEntry", e);
 			}
 
 		}
@@ -191,18 +193,18 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 		@Override
 		public void removeEntry(String arg0) throws IOException {
 			String gKey = generateKey(arg0);
-		//	SurespotLog.v(TAG, "removing cache entry, key: " + gKey);
+			SurespotLog.v(TAG, "removing cache entry, key: " + gKey);
 			mCache.remove(gKey);
 		}
 
 		@Override
 		public void updateEntry(String arg0, HttpCacheUpdateCallback arg1) throws IOException, HttpCacheUpdateException {
 			try {
-				String key = generateKey(arg0);
-				putEntry(generateKey(key), arg1.update(getEntry(key)));
+				SurespotLog.v(TAG, "updating entry, url: " + arg0);
+				putEntry(arg0, arg1.update(getEntry(arg0)));
 			}
 			catch (Exception e) {
-				e.printStackTrace();
+				SurespotLog.w(TAG, "updateEntry", e);
 			}
 
 		}
@@ -226,7 +228,7 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 				// mCache.close();
 			}
 			catch (IOException e) {
-				Log.w(TAG, "close", e);
+				SurespotLog.w(TAG, "close", e);
 			}
 		}
 
@@ -295,7 +297,7 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 
 	public void removeEntry(String key) {
 		try {
-			SurespotLog.v(TAG, "removing cache entry, url: " + key);					
+			SurespotLog.v(TAG, "removing cache entry, url: " + key);
 			mCacheStorage.removeEntry(key);
 		}
 		catch (IOException e) {

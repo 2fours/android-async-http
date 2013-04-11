@@ -37,9 +37,9 @@
 			<locationURI>PARENT-1-PROJECT_LOC/DiskLruCache/target/disklrucache-1.3.2-SNAPSHOT.jar</locationURI>
 		</link>
 		<link>
-			<name>libs/httpclientandroidlib-1.1.1.jar</name>
+			<name>libs/httpclientandroidlib-1.1.1.madman.jar</name>
 			<type>1</type>
-			<locationURI>PARENT-3-PROJECT_LOC/google/adam-httpclientandroidlib/script/httpclientandroidlib-1.1.1.jar</locationURI>
+			<locationURI>PARENT-3-PROJECT_LOC/google/adam-httpclientandroidlib/script/httpclientandroidlib-1.1.1.madman.jar</locationURI>
 		</link>
 	</linkedResources>
 </projectDescription>
