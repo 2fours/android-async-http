@@ -137,7 +137,7 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 		public SurespotHttpCacheStorage(Context context) throws IOException {
 			mCacheDir = FileUtils.getHttpCacheDir(context);
 			Log.v(TAG, "storage cache dir: " + mCacheDir);
-			mCache = DiskLruCache.open(mCacheDir, 200, 1, Integer.MAX_VALUE);
+			mCache = DiskLruCache.open(mCacheDir, 500, 1, Integer.MAX_VALUE);
 		}
 
 		@Override
@@ -160,7 +160,7 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 				ois.close();
 			}
 			catch (Exception e) {
-				throw new IOException("Error retrieving cache entry: " + arg0, e);
+				throw new IOException("Error retrieving cache entry: " + arg0);
 			}
 
 			return entry;
@@ -253,7 +253,7 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 	public static CacheConfig getDiskCacheConfig() {
 
 		CacheConfig cacheConfig = new CacheConfig();
-		cacheConfig.setMaxCacheEntries(200);
+		cacheConfig.setMaxCacheEntries(500);
 		cacheConfig.setMaxObjectSizeBytes(250000);
 		return cacheConfig;
 	}
