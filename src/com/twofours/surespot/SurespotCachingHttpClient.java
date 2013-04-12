@@ -143,7 +143,7 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 
 		@Override
 		public HttpCacheEntry getEntry(String arg0) throws IOException {
-			SurespotLog.v(TAG, "getting entry, url: " + arg0);
+		//	SurespotLog.v(TAG, "getting entry, url: " + arg0);
 			HttpCacheEntry entry = null;
 			try {
 				Snapshot snapshot = null;
@@ -171,7 +171,7 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 		@Override
 		public void putEntry(String key, HttpCacheEntry entry) throws IOException {
 			try {
-				SurespotLog.v(TAG, "putting cache entry, url: " + key);
+		//		SurespotLog.v(TAG, "putting cache entry, url: " + key);
 				String gKey = generateKey(key);
 				//SurespotLog.v(TAG, "putting cache entry, key: " + gKey);
 
@@ -192,15 +192,15 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 
 		@Override
 		public void removeEntry(String arg0) throws IOException {
-			String gKey = generateKey(arg0);
-			SurespotLog.v(TAG, "removing cache entry, key: " + gKey);
+		//	SurespotLog.v(TAG, "removing cache entry, key: " + arg0);
+			String gKey = generateKey(arg0);			
 			mCache.remove(gKey);
 		}
 
 		@Override
 		public void updateEntry(String arg0, HttpCacheUpdateCallback arg1) throws IOException, HttpCacheUpdateException {
 			try {				
-				SurespotLog.v(TAG, "updating entry, url: " + arg0);
+			//	SurespotLog.v(TAG, "updating entry, url: " + arg0);
 				HttpCacheEntry entry = getEntry(arg0);
 				if (entry != null) {
 					putEntry(arg0, arg1.update(entry));
