@@ -199,9 +199,15 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 
 		@Override
 		public void updateEntry(String arg0, HttpCacheUpdateCallback arg1) throws IOException, HttpCacheUpdateException {
-			try {
+			try {				
 				SurespotLog.v(TAG, "updating entry, url: " + arg0);
-				putEntry(arg0, arg1.update(getEntry(arg0)));
+				HttpCacheEntry entry = getEntry(arg0);
+				if (entry != null) {
+					putEntry(arg0, arg1.update(entry));
+				}
+				else {
+					throw new HttpCacheUpdateException("key not found: " + arg0);
+				}
 			}
 			catch (Exception e) {
 				SurespotLog.w(TAG, "updateEntry", e);
