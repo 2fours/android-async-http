@@ -39,6 +39,7 @@ import com.jakewharton.DiskLruCache.Snapshot;
 import com.loopj.android.http.RetryHandler;
 import com.twofours.surespot.common.FileUtils;
 import com.twofours.surespot.common.SurespotLog;
+import com.twofours.surespot.common.Utils;
 import com.twofours.surespot.common.WebClientDevWrapper;
 
 public class SurespotCachingHttpClient extends CachingHttpClient {
@@ -107,28 +108,10 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 	}
 
 	private static String generateKey(String key) {
-		return md5(key);
+		return Utils.md5(key);
 	}
 
-	public static String md5(String s) {
-		try {
-			// Create MD5 Hash
-			MessageDigest digest = java.security.MessageDigest.getInstance("MD5");
-			digest.update(s.getBytes());
-			byte messageDigest[] = digest.digest();
-
-			// Create Hex String
-			StringBuffer hexString = new StringBuffer();
-			for (int i = 0; i < messageDigest.length; i++)
-				hexString.append(Integer.toHexString(0xFF & messageDigest[i]));
-			return hexString.toString();
-
-		}
-		catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-		}
-		return "";
-	}
+	
 
 	public static class SurespotHttpCacheStorage implements HttpCacheStorage {
 		private static final String TAG = "SurespotHttpCacheStorage";

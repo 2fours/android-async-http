@@ -152,7 +152,7 @@ class AsyncHttpRequest implements Runnable {
         // no retries left, crap out with exception
         ConnectException ex = new ConnectException();
         ex.initCause(cause);       
-        ACRA.getErrorReporter().handleException(cause);
+        //ACRA.getErrorReporter().handleSilentException(cause);
         throw ex;
     }
 }
