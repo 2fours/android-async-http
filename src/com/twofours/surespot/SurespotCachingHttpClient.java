@@ -34,8 +34,8 @@ import ch.boye.httpclientandroidlib.params.BasicHttpParams;
 import ch.boye.httpclientandroidlib.params.HttpConnectionParams;
 import ch.boye.httpclientandroidlib.params.HttpProtocolParams;
 
-import com.jakewharton.DiskLruCache;
-import com.jakewharton.DiskLruCache.Snapshot;
+import com.jakewharton.disklrucache.DiskLruCache;
+import com.jakewharton.disklrucache.DiskLruCache.Snapshot;
 import com.loopj.android.http.RetryHandler;
 import com.twofours.surespot.common.FileUtils;
 import com.twofours.surespot.common.SurespotLog;
@@ -115,7 +115,7 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 
 	public static class SurespotHttpCacheStorage implements HttpCacheStorage {
 		private static final String TAG = "SurespotHttpCacheStorage";
-		private com.jakewharton.DiskLruCache mCache;
+		private DiskLruCache mCache;
 		private File mCacheDir;
 
 		public SurespotHttpCacheStorage(Context context) throws IOException {
