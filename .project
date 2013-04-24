@@ -30,11 +30,4 @@
 		<nature>com.android.ide.eclipse.adt.AndroidNature</nature>
 		<nature>org.eclipse.jdt.core.javanature</nature>
 	</natures>
-	<linkedResources>
-		<link>
-			<name>libs/disklrucache-2.0.1-SNAPSHOT.jar</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/DiskLruCache/target/disklrucache-2.0.1-SNAPSHOT.jar</locationURI>
-		</link>
-	</linkedResources>
 </projectDescription>
