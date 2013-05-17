@@ -10,7 +10,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 import android.content.Context;
-import android.util.Log;
 import ch.boye.httpclientandroidlib.HttpRequestInterceptor;
 import ch.boye.httpclientandroidlib.HttpResponseInterceptor;
 import ch.boye.httpclientandroidlib.HttpVersion;
@@ -38,6 +37,7 @@ import com.jakewharton.disklrucache.DiskLruCache;
 import com.jakewharton.disklrucache.DiskLruCache.Snapshot;
 import com.loopj.android.http.RetryHandler;
 import com.twofours.surespot.common.FileUtils;
+import com.twofours.surespot.common.SurespotConstants;
 import com.twofours.surespot.common.SurespotLog;
 import com.twofours.surespot.common.Utils;
 import com.twofours.surespot.common.WebClientDevWrapper;
@@ -64,11 +64,11 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 	 */
 	public SurespotCachingHttpClient(Context context, AbstractHttpClient abstractHttpClient) throws IOException {
 		super(new DecompressingHttpClient(abstractHttpClient), getHttpCacheStorage(context), getDiskCacheConfig());
-		log.enableDebug(true);
-		log.enableError(true);
-		log.enableInfo(true);
-		log.enableTrace(true);
-		log.enableWarn(true);
+		log.enableDebug(SurespotConstants.LOGGING);
+		log.enableError(SurespotConstants.LOGGING);
+		log.enableInfo(SurespotConstants.LOGGING);
+		log.enableTrace(SurespotConstants.LOGGING);
+		log.enableWarn(SurespotConstants.LOGGING);
 
 		mAbstractHttpClient = abstractHttpClient;
 
@@ -111,8 +111,6 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 		return Utils.md5(key);
 	}
 
-	
-
 	public static class SurespotHttpCacheStorage implements HttpCacheStorage {
 		private static final String TAG = "SurespotHttpCacheStorage";
 		private DiskLruCache mCache;
@@ -120,7 +118,7 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 
 		public SurespotHttpCacheStorage(Context context) throws IOException {
 			mCacheDir = FileUtils.getHttpCacheDir(context);
-			Log.v(TAG, "storage cache dir: " + mCacheDir);
+			SurespotLog.v(TAG, "storage cache dir: %s", mCacheDir);
 			mCache = DiskLruCache.open(mCacheDir, 500, 1, Integer.MAX_VALUE);
 		}
 
@@ -140,13 +138,11 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 				InputStream is = snapshot.getInputStream(0);
 				ObjectInputStream ois = new ObjectInputStream(is);
 
-				
-				
 				entry = (HttpCacheEntry) ois.readObject();
 				snapshot.close();
 				ois.close();
-				
-				SurespotLog.v(TAG, "read cache entry, resource length: " + entry.getResource().length());
+
+				SurespotLog.v(TAG, "read cache entry, resource length: %d", entry.getResource().length());
 			}
 			catch (Exception e) {
 				throw new IOException("Error retrieving cache entry: " + arg0);
@@ -158,7 +154,7 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 		@Override
 		public void putEntry(String key, HttpCacheEntry entry) throws IOException {
 			try {
-				SurespotLog.v(TAG, "putting cache entry, url: " + key + ", resource length: " + entry.getResource().length());
+				SurespotLog.v(TAG, "putting cache entry, url: %s, resource length: %d", key, entry.getResource().length());
 				String gKey = generateKey(key);
 				// SurespotLog.v(TAG, "putting cache entry, key: " + gKey);
 
@@ -172,7 +168,7 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 				edit.commit();
 			}
 			catch (Exception e) {
-				SurespotLog.w(TAG, "putEntry", e);
+				SurespotLog.w(TAG, e, "putEntry");
 			}
 
 		}
@@ -197,7 +193,7 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 				}
 			}
 			catch (Exception e) {
-				SurespotLog.w(TAG, "updateEntry", e);
+				SurespotLog.w(TAG, e, "updateEntry");
 			}
 
 		}
@@ -221,7 +217,7 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 				// mCache.close();
 			}
 			catch (IOException e) {
-				SurespotLog.w(TAG, "close", e);
+				SurespotLog.w(TAG, e, "close");
 			}
 		}
 
@@ -290,11 +286,11 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 
 	public void removeEntry(String key) {
 		try {
-			SurespotLog.v(TAG, "removing cache entry, key: " + key);
+			SurespotLog.v(TAG, "removing cache entry, key: %s", key);
 			mCacheStorage.removeEntry(key);
 		}
 		catch (IOException e) {
-			SurespotLog.w(TAG, "removeEntry", e);
+			SurespotLog.w(TAG, e, "removeEntry");
 		}
 	}
 
@@ -303,7 +299,7 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 			mCacheStorage.putEntry(key, entry);
 		}
 		catch (IOException e) {
-			SurespotLog.w(TAG, "addToCache", e);
+			SurespotLog.w(TAG, e, "addToCache");
 		}
 	}
 
@@ -312,7 +308,7 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 			return mCacheStorage.getEntry(key);
 		}
 		catch (IOException e) {
-			SurespotLog.w(TAG, "getCacheEntry", e);
+			SurespotLog.w(TAG, e, "getCacheEntry");
 
 		}
 
