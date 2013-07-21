@@ -160,12 +160,14 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 
 				DiskLruCache.Editor edit = mCache.edit(gKey);
 
-				OutputStream outputStream = edit.newOutputStream(0);
-				ObjectOutputStream os = new ObjectOutputStream(outputStream);
-				os.writeObject(entry);
-				os.close();
+				if (edit != null) {
+					OutputStream outputStream = edit.newOutputStream(0);
+					ObjectOutputStream os = new ObjectOutputStream(outputStream);
+					os.writeObject(entry);
+					os.close();
 
-				edit.commit();
+					edit.commit();
+				}
 			}
 			catch (Exception e) {
 				SurespotLog.w(TAG, e, "putEntry");
