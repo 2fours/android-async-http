@@ -222,16 +222,18 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 		}
 
 		/**
-		 * Removes all disk cache entries from the given directory. This should not be called directly, call
-		 * {@link DiskLruCache#clearCache(Context, String)} or {@link DiskLruCache#clearCache()} instead.
+		 * Removes all disk cache entries from the given directory. This should not be called directly, call {@link DiskLruCache#clearCache(Context, String)} or
+		 * {@link DiskLruCache#clearCache()} instead.
 		 * 
 		 * @param cacheDir
 		 *            The directory to remove the cache files from
 		 */
 		private void clearCache(File cacheDir) {
 			final File[] files = cacheDir.listFiles();
-			for (int i = 0; i < files.length; i++) {
-				files[i].delete();
+			if (files != null) {
+				for (int i = 0; i < files.length; i++) {
+					files[i].delete();
+				}
 			}
 		}
 
