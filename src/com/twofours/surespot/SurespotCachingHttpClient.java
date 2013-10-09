@@ -46,7 +46,7 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 
 	private static final int DEFAULT_MAX_CONNECTIONS = 200;
 	private static final int DEFAULT_SOCKET_TIMEOUT = 15 * 1000;
-	private static final int DEFAULT_MAX_RETRIES = 5;
+	private static final int DEFAULT_MAX_RETRIES = 0;
 	private static final int DEFAULT_SOCKET_BUFFER_SIZE = 8192;
 	private static final String TAG = "SurespotCachingHttpClient";
 	private static int maxConnections = DEFAULT_MAX_CONNECTIONS;
