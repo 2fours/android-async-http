@@ -6,9 +6,6 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-
 import android.content.Context;
 import ch.boye.httpclientandroidlib.HttpRequestInterceptor;
 import ch.boye.httpclientandroidlib.HttpResponseInterceptor;
@@ -99,8 +96,9 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 		SchemeRegistry schemeRegistry = new SchemeRegistry();
 
 		PoolingClientConnectionManager pm = new PoolingClientConnectionManager(schemeRegistry);
+		pm.setMaxTotal(DEFAULT_MAX_CONNECTIONS);
 		pm.setDefaultMaxPerRoute(100);
-
+		
 		DefaultHttpClient defaultHttpClient = new DefaultHttpClient(pm, httpParams);
 		defaultHttpClient.setHttpRequestRetryHandler(new RetryHandler(DEFAULT_MAX_RETRIES));
 		WebClientDevWrapper.wrapClient(defaultHttpClient);
@@ -317,5 +315,9 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 		}
 
 		return null;
+	}
+	
+	public void destroy() {
+		mAbstractHttpClient.getConnectionManager().shutdown();
 	}
 }
