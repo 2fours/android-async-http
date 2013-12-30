@@ -320,4 +320,9 @@ public class SurespotCachingHttpClient extends CachingHttpClient {
 	public void destroy() {
 		mAbstractHttpClient.getConnectionManager().shutdown();
 	}
+	
+    public void setUserAgent(String userAgent) {
+        HttpProtocolParams.setUserAgent(this.mAbstractHttpClient.getParams(), userAgent);
+    }
+
 }
